@@ -21,7 +21,12 @@ async function init(): Promise<void> {
   console.log("Generating ECDH key pair and auth secret...");
   const decryptor = await Decryptor.create();
 
-  console.log("Paste document.cookie from x.com DevTools Console:");
+  console.log(
+    "Paste Cookie header from DevTools (Network tab → any request → Cookie header):",
+  );
+  console.log(
+    "  (auth_token is HttpOnly — document.cookie won't include it)",
+  );
   const raw = prompt("  cookie: ");
 
   if (!raw) {
@@ -99,22 +104,13 @@ async function start(): Promise<void> {
         console.error("[main] Failed to process notification:", err);
       }
     },
-    onEndpointChanged: async (newEndpoint: string) => {
-      console.log("[main] Endpoint changed, re-registering with Twitter...");
-      subscription.endpoint = newEndpoint;
-      config.endpoint = newEndpoint;
-      await saveConfig(config);
-      try {
-        await registerPush(client, subscription);
-      } catch (err) {
-        console.error("[main] Re-registration failed:", err);
-      }
-    },
   });
 
   console.log("[main] Connecting to Autopush...");
   const endpoint = await autopush.connect();
   subscription.endpoint = endpoint;
+
+  const needsRegistration = endpoint !== config.endpoint;
 
   config.uaid = autopush.getUaid();
   config.endpoint = endpoint;
@@ -124,8 +120,12 @@ async function start(): Promise<void> {
   console.log(`[main] Connected. UAID: ${config.uaid}`);
   console.log(`[main] Endpoint: ${endpoint}`);
 
-  console.log("[main] Registering with Twitter...");
-  await registerPush(client, subscription);
+  if (needsRegistration) {
+    console.log("[main] Registering with Twitter...");
+    await registerPush(client, subscription);
+  } else {
+    console.log("[main] Endpoint unchanged, skipping registration.");
+  }
 
   console.log("[main] Listening for notifications... (Ctrl+C to stop)");
 

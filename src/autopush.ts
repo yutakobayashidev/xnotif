@@ -8,7 +8,6 @@ interface AutopushOptions {
   vapidKey: string;
   remoteBroadcasts?: Record<string, string>;
   onNotification: (notification: AutopushNotification) => void;
-  onEndpointChanged: (endpoint: string) => void;
 }
 
 export class AutopushClient {
@@ -16,8 +15,6 @@ export class AutopushClient {
   private uaid = "";
   private endpoint = "";
   private reconnectDelay = 1000;
-  private lastMessage = Date.now();
-  private heartbeatTimer: Timer | null = null;
   private closed = false;
   private remoteBroadcasts: Record<string, string>;
 
@@ -54,7 +51,6 @@ export class AutopushClient {
       };
 
       this.ws.onmessage = (event) => {
-        this.lastMessage = Date.now();
         const msg = JSON.parse(String(event.data));
 
         switch (msg.messageType) {
@@ -73,11 +69,7 @@ export class AutopushClient {
 
           case "register":
             if (msg.status === 200) {
-              const newEndpoint = msg.pushEndpoint as string;
-              if (this.endpoint && this.endpoint !== newEndpoint) {
-                this.options.onEndpointChanged(newEndpoint);
-              }
-              this.endpoint = newEndpoint;
+              this.endpoint = msg.pushEndpoint as string;
               if (!resolved) {
                 resolved = true;
                 resolve(newEndpoint);
@@ -122,13 +114,11 @@ export class AutopushClient {
         }
       };
 
-      this.startHeartbeat();
     });
   }
 
   close(): void {
     this.closed = true;
-    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.ws?.close();
   }
 
@@ -148,14 +138,4 @@ export class AutopushClient {
     }, this.reconnectDelay);
   }
 
-  private startHeartbeat(): void {
-    if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
-    this.heartbeatTimer = setInterval(() => {
-      // Force reconnect if no messages for 5.5 minutes
-      if (Date.now() - this.lastMessage > 5.5 * 60 * 1000) {
-        console.log("[autopush] No message for 5.5 min, forcing reconnect");
-        this.ws?.close();
-      }
-    }, 60_000);
-  }
 }
