@@ -103,8 +103,8 @@ export async function registerPush(
     path,
     {
       push_device_info: {
-        os_version: "Web/Firefox",
-        udid: "Web/Firefox",
+        os_version: "Web/Chrome",
+        udid: "Web/Chrome",
         env: 3,
         locale: "en",
         protocol_version: 1,
