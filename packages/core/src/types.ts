@@ -42,6 +42,6 @@ export interface ClientState {
 }
 
 export interface NotificationClientOptions {
-  cookies: { auth_token: string; ct0: string };
+  cookies: { auth_token: string; ct0: string; [key: string]: string };
   state?: ClientState;
 }

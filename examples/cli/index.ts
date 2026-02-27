@@ -10,7 +10,7 @@ const TWEETS_PATH = import.meta.dir + "/tweets.json";
 
 interface StoredConfig {
   state: ClientState;
-  cookies: { auth_token: string; ct0: string };
+  cookies: Record<string, string>;
 }
 
 async function loadConfig(): Promise<StoredConfig> {
@@ -39,12 +39,24 @@ async function init(): Promise<void> {
   console.log("Generating ECDH key pair and auth secret...");
   const decryptor = await Decryptor.create();
 
-  console.log("Enter your Twitter cookies:");
-  const authToken = prompt("  auth_token: ");
-  const ct0 = prompt("  ct0: ");
+  console.log("Paste Cookie header from DevTools (Network tab → any request → Cookie header):");
+  console.log("  (auth_token is HttpOnly — document.cookie won't include it)");
+  const raw = prompt("  cookie: ");
 
-  if (!authToken || !ct0) {
-    console.error("Both auth_token and ct0 are required.");
+  if (!raw) {
+    console.error("Cookie string is required.");
+    process.exit(1);
+  }
+
+  const cookies: Record<string, string> = {};
+  for (const pair of raw.split(";")) {
+    const idx = pair.indexOf("=");
+    if (idx === -1) continue;
+    cookies[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
+  }
+
+  if (!cookies.auth_token || !cookies.ct0) {
+    console.error("Cookie must contain auth_token and ct0.");
     process.exit(1);
   }
 
@@ -59,7 +71,7 @@ async function init(): Promise<void> {
         auth: decryptor.getAuthBase64url(),
       },
     },
-    cookies: { auth_token: authToken, ct0 },
+    cookies,
   };
 
   await saveConfig(config);
