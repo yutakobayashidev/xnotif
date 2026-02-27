@@ -68,10 +68,10 @@ await client.start();
 
 **options:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `cookies` | `{ auth_token: string; ct0: string }` | Yes | Twitter セッション Cookie |
-| `state` | `ClientState` | No | 前回の接続状態。省略時は新規生成 |
+| Field     | Type                                  | Required | Description                      |
+| --------- | ------------------------------------- | -------- | -------------------------------- |
+| `cookies` | `{ auth_token: string; ct0: string }` | Yes      | Twitter セッション Cookie        |
+| `state`   | `ClientState`                         | No       | 前回の接続状態。省略時は新規生成 |
 
 ### `client.start(): Promise<void>`
 
@@ -83,13 +83,13 @@ Autopush に接続し、通知受信を開始します。`state` が未指定の
 
 ### Events
 
-| Event | Callback | Description |
-|-------|----------|-------------|
-| `notification` | `(notification: TwitterNotification) => void` | 復号済み通知を受信 |
-| `connected` | `(state: ClientState) => void` | 接続完了。state を永続化に利用 |
-| `error` | `(error: Error) => void` | エラー発生 (接続は継続) |
-| `disconnected` | `() => void` | 切断検知 |
-| `reconnecting` | `(delay: number) => void` | 再接続試行 (delay ms 後) |
+| Event          | Callback                                      | Description                    |
+| -------------- | --------------------------------------------- | ------------------------------ |
+| `notification` | `(notification: TwitterNotification) => void` | 復号済み通知を受信             |
+| `connected`    | `(state: ClientState) => void`                | 接続完了。state を永続化に利用 |
+| `error`        | `(error: Error) => void`                      | エラー発生 (接続は継続)        |
+| `disconnected` | `() => void`                                  | 切断検知                       |
+| `reconnecting` | `(delay: number) => void`                     | 再接続試行 (delay ms 後)       |
 
 ### Low-level API
 

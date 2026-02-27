@@ -38,10 +38,10 @@ MVP → ライブラリ化 (CLI ツールからライブラリへの転換)
 
 ## Recommended Epics
 
-| Priority | Epic (slug) | One-line description | Why |
-| -------- | ----------- | -------------------- | --- |
-| P0 | `library-api` | CLI → ライブラリ化。EventEmitter ベースの NotificationClient を実装 | ライブラリ化の核 |
-| P1 | `npm-publish` | npm 公開パイプライン (build, exports, CI) | 公開してユーザーが使えるようにする |
-| P2 | `notification-filter` | 通知タイプ (tweet, like, follow 等) でのフィルタリング API | 不要な通知を無視できる |
-| P2 | `webhook-adapter` | Webhook 送信アダプタ (Discord, Slack 等) | エコシステム拡張の第一歩 |
-| P3 | `multi-account` | 複数アカウントの同時接続管理 | パワーユーザー向け |
+| Priority | Epic (slug)           | One-line description                                                | Why                                |
+| -------- | --------------------- | ------------------------------------------------------------------- | ---------------------------------- |
+| P0       | `library-api`         | CLI → ライブラリ化。EventEmitter ベースの NotificationClient を実装 | ライブラリ化の核                   |
+| P1       | `npm-publish`         | npm 公開パイプライン (build, exports, CI)                           | 公開してユーザーが使えるようにする |
+| P2       | `notification-filter` | 通知タイプ (tweet, like, follow 等) でのフィルタリング API          | 不要な通知を無視できる             |
+| P2       | `webhook-adapter`     | Webhook 送信アダプタ (Discord, Slack 等)                            | エコシステム拡張の第一歩           |
+| P3       | `multi-account`       | 複数アカウントの同時接続管理                                        | パワーユーザー向け                 |
