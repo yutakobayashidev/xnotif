@@ -22,8 +22,8 @@ jobs:
         uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
         with:
           version: bunx changeset version
-          # --tag beta: remove this flag after `changeset pre exit`
-          publish: bun run build && bunx changeset publish --tag beta
+          # release script includes --tag beta; remove after `changeset pre exit`
+          publish: bun run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

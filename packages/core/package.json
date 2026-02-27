@@ -10,13 +10,13 @@
     "webpush",
     "x"
   ],
-  "homepage": "https://github.com/yutakobayashidev/reverse-twitter-notifications",
-  "bugs": "https://github.com/yutakobayashidev/reverse-twitter-notifications/issues",
+  "homepage": "https://github.com/yutakobayashidev/xnotif",
+  "bugs": "https://github.com/yutakobayashidev/xnotif/issues",
   "license": "MIT",
   "author": "yutakobayashidev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yutakobayashidev/reverse-twitter-notifications"
+    "url": "https://github.com/yutakobayashidev/xnotif"
   },
   "files": [
     "dist"

@@ -7,6 +7,7 @@
   ],
   "scripts": {
     "build": "bun run --cwd packages/core build",
+    "release": "bun run build && bunx changeset publish --tag beta",
     "lint": "oxlint .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check ."
