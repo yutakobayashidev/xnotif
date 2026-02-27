@@ -120,7 +120,5 @@ export async function registerPush(
     const text = await res.text();
     throw new Error(`login.json failed (${res.status}): ${text}`);
   }
-
-  console.log("[twitter] Push registration successful");
 }
 
