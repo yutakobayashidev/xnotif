@@ -1,6 +1,23 @@
 {
-  "name": "reverse-twitter-notifications",
+  "name": "xnotif",
   "version": "0.1.0",
+  "description": "Receive Twitter/X push notifications programmatically via Mozilla Autopush",
+  "keywords": [
+    "twitter",
+    "x",
+    "push",
+    "notifications",
+    "autopush",
+    "webpush"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yutakobayashidev/reverse-twitter-notifications"
+  },
+  "homepage": "https://github.com/yutakobayashidev/reverse-twitter-notifications",
+  "bugs": "https://github.com/yutakobayashidev/reverse-twitter-notifications/issues",
+  "author": "yutakobayashidev",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
