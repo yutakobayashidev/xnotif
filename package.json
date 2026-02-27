@@ -1,11 +1,19 @@
 {
   "name": "reverse-twitter-notifications",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "init": "bun run src/index.ts init",
-    "start": "bun run src/index.ts start"
+    "build": "bun build src/index.ts --outdir dist --target bun --packages external && bunx tsc --emitDeclarationOnly"
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",
