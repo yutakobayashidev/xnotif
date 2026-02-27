@@ -6,7 +6,6 @@
 - GitHub Actions CI ワークフロー: build + type-check + lint (Biome)
 - changesets release ワークフロー: マージ時に自動 publish
 - Biome 導入 (linter/formatter)
-- パッケージ名の見直し (`reverse-twitter-notifications` → より簡潔で覚えやすい名前に変更。npm で未使用であること)
 - `packages/core/package.json` に npm メタデータ追加 (description, keywords, repository, homepage, bugs — 英語)
 - NPM_TOKEN シークレット設定手順のドキュメント
 
