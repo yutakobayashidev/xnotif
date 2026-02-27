@@ -1,10 +1,7 @@
 import { EventEmitter } from "events";
 import { Decryptor } from "./decrypt";
 import { AutopushClient } from "./autopush";
-import {
-  createClient as createTwitterClient,
-  registerPush,
-} from "./twitter";
+import { createClient as createTwitterClient, registerPush } from "./twitter";
 import { base64urlToBuffer } from "./utils";
 import type {
   AutopushNotification,
@@ -125,8 +122,6 @@ export class NotificationClient extends EventEmitter<NotificationClientEvents> {
   }
 }
 
-export function createClient(
-  options: NotificationClientOptions,
-): NotificationClient {
+export function createClient(options: NotificationClientOptions): NotificationClient {
   return new NotificationClient(options);
 }

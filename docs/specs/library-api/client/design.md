@@ -35,6 +35,7 @@ src/
 ```
 
 **削除するファイル:**
+
 - `config.ts` — 状態管理はユーザー側の責務
 - `handlers.ts` — ライブラリは handler パターンを使わない (EventEmitter で直接配信)
 

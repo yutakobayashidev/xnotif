@@ -1,9 +1,4 @@
-import {
-  createClient,
-  Decryptor,
-  type ClientState,
-  type TwitterNotification,
-} from "reverse-twitter-notifications";
+import { createClient, Decryptor, type ClientState, type TwitterNotification } from "xnotif";
 
 const CONFIG_PATH = import.meta.dir + "/config.json";
 const TWEETS_PATH = import.meta.dir + "/tweets.json";
@@ -28,9 +23,7 @@ async function saveConfig(config: StoredConfig): Promise<void> {
 
 async function appendTweet(notification: TwitterNotification): Promise<void> {
   const file = Bun.file(TWEETS_PATH);
-  const tweets: TwitterNotification[] = (await file.exists())
-    ? await file.json()
-    : [];
+  const tweets: TwitterNotification[] = (await file.exists()) ? await file.json() : [];
   tweets.push({ ...notification, _receivedAt: new Date().toISOString() });
   await Bun.write(TWEETS_PATH, JSON.stringify(tweets, null, 2));
 }

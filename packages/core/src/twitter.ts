@@ -1,7 +1,4 @@
-import {
-  TwitterOpenApi,
-  type TwitterOpenApiClient,
-} from "twitter-openapi-typescript";
+import { TwitterOpenApi, type TwitterOpenApiClient } from "twitter-openapi-typescript";
 import {
   BaseAPI,
   type Configuration,
@@ -44,11 +41,7 @@ class NotificationApi extends BaseAPI {
     super(config);
   }
 
-  async post(
-    path: string,
-    body: unknown,
-    initOverride?: InitOverrideFunction,
-  ): Promise<Response> {
+  async post(path: string, body: unknown, initOverride?: InitOverrideFunction): Promise<Response> {
     const headers: HTTPHeaders = {};
 
     // Populate headers from apiKey (same pattern as generated V11PostApi)
@@ -68,24 +61,16 @@ class NotificationApi extends BaseAPI {
 
     headers["Content-Type"] = "application/json";
 
-    return this.request(
-      { path, method: "POST", headers, body: body as HTTPBody },
-      initOverride,
-    );
+    return this.request({ path, method: "POST", headers, body: body as HTTPBody }, initOverride);
   }
 }
 
-export async function createClient(
-  cookies: Record<string, string>,
-): Promise<TwitterOpenApiClient> {
+export async function createClient(cookies: Record<string, string>): Promise<TwitterOpenApiClient> {
   const api = new TwitterOpenApi();
   return api.getClientFromCookies(cookies);
 }
 
-function makeInitOverride(
-  client: TwitterOpenApiClient,
-  path: string,
-): InitOverrideFunction {
+function makeInitOverride(client: TwitterOpenApiClient, path: string): InitOverrideFunction {
   return client.initOverrides({
     "@method": "POST",
     "@path": path,
@@ -121,4 +106,3 @@ export async function registerPush(
     throw new Error(`login.json failed (${res.status}): ${text}`);
   }
 }
-

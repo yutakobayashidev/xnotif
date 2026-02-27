@@ -84,9 +84,9 @@ reverse-twitter-notifications/
 
 ### 移動対象ファイル
 
-| 移動元 | 移動先 |
-|--------|--------|
-| `src/` | `packages/core/src/` |
+| 移動元          | 移動先                        |
+| --------------- | ----------------------------- |
+| `src/`          | `packages/core/src/`          |
 | `tsconfig.json` | `packages/core/tsconfig.json` |
 
 ### .gitignore 変更

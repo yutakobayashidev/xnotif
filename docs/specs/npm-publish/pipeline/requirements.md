@@ -37,7 +37,7 @@
 1. changeset なしの PR（docs のみ等）→ changeset bot が警告するが CI は通る
 2. pre-release mode 中に breaking change → minor bump（0.x なので patch でも可）
 3. npm publish 失敗（token 期限切れ等）→ ワークフローが失敗し、再実行で復旧可能
-4. パッケージ名変更時、workspace:* 参照の examples/cli が壊れないこと
+4. パッケージ名変更時、workspace:\* 参照の examples/cli が壊れないこと
 
 ## Constraints
 

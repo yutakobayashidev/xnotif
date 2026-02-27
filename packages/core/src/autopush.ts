@@ -119,7 +119,6 @@ export class AutopushClient {
           reject(err);
         }
       };
-
     });
   }
 
@@ -141,5 +140,4 @@ export class AutopushClient {
       });
     }, this.reconnectDelay);
   }
-
 }
