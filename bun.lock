@@ -8,11 +8,11 @@
     "examples/cli": {
       "name": "example-cli",
       "dependencies": {
-        "reverse-twitter-notifications": "workspace:*",
+        "xnotif": "workspace:*",
       },
     },
     "packages/core": {
-      "name": "reverse-twitter-notifications",
+      "name": "xnotif",
       "version": "0.1.0",
       "dependencies": {
         "twitter-openapi-typescript": "^0.0.55",
@@ -55,8 +55,6 @@
 
     "nth-check": ["nth-check@2.1.1", "", { "dependencies": { "boolbase": "^1.0.0" } }, "sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w=="],
 
-    "reverse-twitter-notifications": ["reverse-twitter-notifications@workspace:packages/core"],
-
     "twitter-openapi-typescript": ["twitter-openapi-typescript@0.0.55", "", { "dependencies": { "twitter-openapi-typescript-generated": "^0.0.38", "x-client-transaction-id-generater": "^0.0.7" } }, "sha512-VuvrUMHtMOWumTRxRxtr+MmTHExvtycKoR3cL9sY8L0ZQ5LhqlZVWnUyHW3hCwaSlfeiqQJPA8rWnW3GDUZHgg=="],
 
     "twitter-openapi-typescript-generated": ["twitter-openapi-typescript-generated@0.0.38", "", {}, "sha512-7BvPYNeq7W1eAk6H1ZcQLZ8oyA9ma2OGT279+8BbeuNqFpITMK/odqhJbBsQ7dG/dgCcCTkRv49gShtUHCSxng=="],
@@ -66,5 +64,7 @@
     "undici-types": ["undici-types@7.18.2", "", {}, "sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w=="],
 
     "x-client-transaction-id-generater": ["x-client-transaction-id-generater@0.0.7", "", { "dependencies": { "node-html-parser": "^7.0.1" } }, "sha512-lLIozd8PLITaCwVGvlaOcCczkI/Q/C2zeu69DrBUpIj9rI/Gb0nsxk+f9jS0sexo3frsouxc0JeEw9Bv3C9lxw=="],
+
+    "xnotif": ["xnotif@workspace:packages/core"],
   }
 }

@@ -7,6 +7,6 @@
     "start": "bun run index.ts start"
   },
   "dependencies": {
-    "reverse-twitter-notifications": "workspace:*"
+    "xnotif": "workspace:*"
   }
 }

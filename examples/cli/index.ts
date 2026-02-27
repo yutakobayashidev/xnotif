@@ -3,7 +3,7 @@ import {
   Decryptor,
   type ClientState,
   type TwitterNotification,
-} from "reverse-twitter-notifications";
+} from "xnotif";
 
 const CONFIG_PATH = import.meta.dir + "/config.json";
 const TWEETS_PATH = import.meta.dir + "/tweets.json";
