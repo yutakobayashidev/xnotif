@@ -7,5 +7,9 @@
   ],
   "scripts": {
     "build": "bun run --cwd packages/core build"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.35.0",
+    "oxlint": "^1.50.0"
   }
 }
