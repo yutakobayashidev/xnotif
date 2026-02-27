@@ -1,17 +1,3 @@
-export interface Config {
-  uaid: string;
-  channelId: string;
-  endpoint: string;
-  remoteBroadcasts: Record<string, string>;
-  decryptor: {
-    jwk: JsonWebKey;
-    auth: string; // base64url
-  };
-  twitter: {
-    cookies: Record<string, string>;
-  };
-}
-
 export interface AutopushNotification {
   messageType: "notification";
   channelID: string;
@@ -44,6 +30,18 @@ export interface TwitterNotification {
   [key: string]: unknown;
 }
 
-export interface NotificationHandler {
-  handle(notification: TwitterNotification): void | Promise<void>;
+export interface ClientState {
+  uaid: string;
+  channelId: string;
+  endpoint: string;
+  remoteBroadcasts: Record<string, string>;
+  decryptor: {
+    jwk: JsonWebKey;
+    auth: string; // base64url
+  };
+}
+
+export interface NotificationClientOptions {
+  cookies: { auth_token: string; ct0: string };
+  state?: ClientState;
 }

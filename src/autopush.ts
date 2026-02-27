@@ -2,12 +2,15 @@ import type { AutopushNotification } from "./types";
 
 const AUTOPUSH_URL = "wss://push.services.mozilla.com/";
 
-interface AutopushOptions {
+export interface AutopushOptions {
   uaid?: string;
   channelId: string;
   vapidKey: string;
   remoteBroadcasts?: Record<string, string>;
   onNotification: (notification: AutopushNotification) => void;
+  onError?: (error: unknown) => void;
+  onDisconnected?: () => void;
+  onReconnecting?: (delay: number) => void;
 }
 
 export class AutopushClient {
@@ -103,11 +106,14 @@ export class AutopushClient {
       };
 
       this.ws.onclose = () => {
-        if (!this.closed) this.reconnect();
+        if (!this.closed) {
+          this.options.onDisconnected?.();
+          this.reconnect();
+        }
       };
 
       this.ws.onerror = (err) => {
-        console.error("[autopush] WebSocket error:", err);
+        this.options.onError?.(err);
         if (!resolved) {
           resolved = true;
           reject(err);
@@ -127,13 +133,11 @@ export class AutopushClient {
   }
 
   private reconnect(): void {
-    console.log(
-      `[autopush] Reconnecting in ${this.reconnectDelay / 1000}s...`,
-    );
+    this.options.onReconnecting?.(this.reconnectDelay);
     setTimeout(() => {
       this.reconnectDelay = Math.min(this.reconnectDelay * 2, 60_000);
       this.connect().catch((err) => {
-        console.error("[autopush] Reconnect failed:", err);
+        this.options.onError?.(err);
       });
     }, this.reconnectDelay);
   }
