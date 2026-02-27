@@ -69,19 +69,10 @@ async function start(): Promise<void> {
     config.decryptor.auth,
   );
 
-  console.log("[main] Initializing Twitter client...");
-  const client = await createClient(config.twitter.cookies);
-
   const handlers: NotificationHandler[] = [
     new ConsoleHandler(),
     new FileHandler(),
   ];
-
-  const subscription: PushSubscription = {
-    endpoint: "",
-    p256dh: decryptor.getPublicKeyBase64url(),
-    auth: decryptor.getAuthBase64url(),
-  };
 
   const autopush = new AutopushClient({
     uaid: config.uaid,
@@ -108,7 +99,6 @@ async function start(): Promise<void> {
 
   console.log("[main] Connecting to Autopush...");
   const endpoint = await autopush.connect();
-  subscription.endpoint = endpoint;
 
   const needsRegistration = endpoint !== config.endpoint;
 
@@ -118,13 +108,15 @@ async function start(): Promise<void> {
   await saveConfig(config);
 
   console.log(`[main] Connected. UAID: ${config.uaid}`);
-  console.log(`[main] Endpoint: ${endpoint}`);
 
   if (needsRegistration) {
-    console.log("[main] Registering with Twitter...");
-    await registerPush(client, subscription);
-  } else {
-    console.log("[main] Endpoint unchanged, skipping registration.");
+    console.log("[main] Endpoint changed, registering with Twitter...");
+    const client = await createClient(config.twitter.cookies);
+    await registerPush(client, {
+      endpoint,
+      p256dh: decryptor.getPublicKeyBase64url(),
+      auth: decryptor.getAuthBase64url(),
+    });
   }
 
   console.log("[main] Listening for notifications... (Ctrl+C to stop)");
