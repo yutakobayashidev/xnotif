@@ -10,5 +10,8 @@
   "devDependencies": {
     "@types/bun": "^1.2.0",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "twitter-openapi-typescript": "^0.0.55"
   }
 }

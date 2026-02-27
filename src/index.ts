@@ -1,8 +1,8 @@
 import { Decryptor } from "./decrypt";
 import { AutopushClient } from "./autopush";
 import {
+  createClient,
   registerPush,
-  startCheckinLoop,
   type PushSubscription,
 } from "./twitter";
 import { loadConfig, saveConfig } from "./config";
@@ -21,12 +21,23 @@ async function init(): Promise<void> {
   console.log("Generating ECDH key pair and auth secret...");
   const decryptor = await Decryptor.create();
 
-  console.log("Enter your Twitter cookies:");
-  const authToken = prompt("  auth_token: ");
-  const ct0 = prompt("  ct0: ");
+  console.log("Paste document.cookie from x.com DevTools Console:");
+  const raw = prompt("  cookie: ");
 
-  if (!authToken || !ct0) {
-    console.error("Both auth_token and ct0 are required.");
+  if (!raw) {
+    console.error("Cookie string is required.");
+    process.exit(1);
+  }
+
+  const cookies: Record<string, string> = {};
+  for (const pair of raw.split(";")) {
+    const idx = pair.indexOf("=");
+    if (idx === -1) continue;
+    cookies[pair.slice(0, idx).trim()] = pair.slice(idx + 1).trim();
+  }
+
+  if (!cookies.auth_token || !cookies.ct0) {
+    console.error("Cookie must contain auth_token and ct0.");
     process.exit(1);
   }
 
@@ -39,7 +50,7 @@ async function init(): Promise<void> {
       jwk: decryptor.getJwk(),
       auth: decryptor.getAuthBase64url(),
     },
-    twitter: { authToken, ct0 },
+    twitter: { cookies },
   };
 
   await saveConfig(config);
@@ -52,6 +63,9 @@ async function start(): Promise<void> {
     config.decryptor.jwk,
     config.decryptor.auth,
   );
+
+  console.log("[main] Initializing Twitter client...");
+  const client = await createClient(config.twitter.cookies);
 
   const handlers: NotificationHandler[] = [
     new ConsoleHandler(),
@@ -91,7 +105,7 @@ async function start(): Promise<void> {
       config.endpoint = newEndpoint;
       await saveConfig(config);
       try {
-        await registerPush(config.twitter, subscription);
+        await registerPush(client, subscription);
       } catch (err) {
         console.error("[main] Re-registration failed:", err);
       }
@@ -102,7 +116,6 @@ async function start(): Promise<void> {
   const endpoint = await autopush.connect();
   subscription.endpoint = endpoint;
 
-  // Persist connection state
   config.uaid = autopush.getUaid();
   config.endpoint = endpoint;
   config.remoteBroadcasts = autopush.getRemoteBroadcasts();
@@ -112,11 +125,7 @@ async function start(): Promise<void> {
   console.log(`[main] Endpoint: ${endpoint}`);
 
   console.log("[main] Registering with Twitter...");
-  await registerPush(config.twitter, subscription);
-
-  startCheckinLoop(config.twitter, subscription, () => {
-    console.error("[main] Checkin re-registration failed");
-  });
+  await registerPush(client, subscription);
 
   console.log("[main] Listening for notifications... (Ctrl+C to stop)");
 

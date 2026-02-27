@@ -8,8 +8,7 @@ export interface Config {
     auth: string; // base64url
   };
   twitter: {
-    authToken: string;
-    ct0: string;
+    cookies: Record<string, string>;
   };
 }
 
