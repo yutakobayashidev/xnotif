@@ -1,0 +1,12 @@
+{
+  "name": "example-cli",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "init": "bun run index.ts init",
+    "start": "bun run index.ts start"
+  },
+  "dependencies": {
+    "reverse-twitter-notifications": "workspace:*"
+  }
+}
