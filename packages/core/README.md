@@ -61,20 +61,20 @@ await client.start();
 
 ### `createClient(options)`
 
-| Option    | Type                                    | Required | Description            |
-| --------- | --------------------------------------- | -------- | ---------------------- |
-| `cookies` | `{ auth_token: string; ct0: string }`   | Yes      | Session cookies        |
-| `state`   | `ClientState`                           | No       | Restore previous state |
+| Option    | Type                                  | Required | Description            |
+| --------- | ------------------------------------- | -------- | ---------------------- |
+| `cookies` | `{ auth_token: string; ct0: string }` | Yes      | Session cookies        |
+| `state`   | `ClientState`                         | No       | Restore previous state |
 
 ### Events
 
-| Event          | Payload                  | Description                           |
-| -------------- | ------------------------ | ------------------------------------- |
-| `notification` | `TwitterNotification`    | Decrypted notification                |
-| `connected`    | `ClientState`            | Connected — persist this state        |
-| `error`        | `Error`                  | Error (connection continues)          |
-| `disconnected` | —                        | WebSocket closed                      |
-| `reconnecting` | `number`                 | Reconnecting in N ms                  |
+| Event          | Payload               | Description                    |
+| -------------- | --------------------- | ------------------------------ |
+| `notification` | `TwitterNotification` | Decrypted notification         |
+| `connected`    | `ClientState`         | Connected — persist this state |
+| `error`        | `Error`               | Error (connection continues)   |
+| `disconnected` | —                     | WebSocket closed               |
+| `reconnecting` | `number`              | Reconnecting in N ms           |
 
 ### Methods
 
