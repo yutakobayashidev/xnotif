@@ -23,7 +23,7 @@ client.on("notification", (notification) => {
 
 client.on("connected", (state) => {
   // state を保存して次回再利用
-  await Bun.write("state.json", JSON.stringify(state));
+  Bun.write("state.json", JSON.stringify(state));
 });
 
 await client.start();
