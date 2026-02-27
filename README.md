@@ -1,17 +1,17 @@
-# reverse-twitter-notifications
+# xnotif
 
 Twitter(X) の Web Push 通知を Mozilla Autopush 経由で受信・復号し、プログラマブルな API として提供するライブラリ。Twitter API もスクレイピングも使わない。
 
 ## Install
 
 ```bash
-bun add reverse-twitter-notifications
+bun add xnotif
 ```
 
 ## Quick Start
 
 ```typescript
-import { createClient } from "reverse-twitter-notifications";
+import { createClient } from "xnotif";
 
 const client = createClient({
   cookies: { auth_token: "YOUR_AUTH_TOKEN", ct0: "YOUR_CT0" },
@@ -42,7 +42,7 @@ await client.start();
 
 ```typescript
 import { readFileSync, existsSync } from "fs";
-import { createClient, type ClientState } from "reverse-twitter-notifications";
+import { createClient, type ClientState } from "xnotif";
 
 const state: ClientState | undefined = existsSync("state.json")
   ? JSON.parse(readFileSync("state.json", "utf-8"))
