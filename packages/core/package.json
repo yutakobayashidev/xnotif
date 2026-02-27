@@ -20,6 +20,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "twitter-openapi-typescript": "^0.0.55"
+    "twitter-openapi-typescript": "^0.0.55",
+    "twitter-openapi-typescript-generated": "^0.0.38"
   }
 }
