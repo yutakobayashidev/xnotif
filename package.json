@@ -1,0 +1,14 @@
+{
+  "name": "reverse-twitter-notifications",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "init": "bun run src/index.ts init",
+    "start": "bun run src/index.ts start"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "typescript": "^5.9.3"
+  }
+}
