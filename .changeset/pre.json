@@ -4,5 +4,7 @@
   "initialVersions": {
     "xnotif": "0.1.0"
   },
-  "changesets": []
+  "changesets": [
+    "oidc-publish-test"
+  ]
 }
