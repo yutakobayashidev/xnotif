@@ -72,7 +72,7 @@ export class AutopushClient {
               this.endpoint = msg.pushEndpoint as string;
               if (!resolved) {
                 resolved = true;
-                resolve(newEndpoint);
+                resolve(this.endpoint);
               }
             } else {
               const err = new Error(`Register failed: status ${msg.status}`);
