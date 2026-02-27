@@ -47,3 +47,19 @@ export interface TwitterNotification {
 export interface NotificationHandler {
   handle(notification: TwitterNotification): void | Promise<void>;
 }
+
+export interface ClientState {
+  uaid: string;
+  channelId: string;
+  endpoint: string;
+  remoteBroadcasts: Record<string, string>;
+  decryptor: {
+    jwk: JsonWebKey;
+    auth: string; // base64url
+  };
+}
+
+export interface NotificationClientOptions {
+  cookies: { auth_token: string; ct0: string };
+  state?: ClientState;
+}
