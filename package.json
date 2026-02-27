@@ -1,25 +1,11 @@
 {
-  "name": "reverse-twitter-notifications",
-  "version": "0.1.0",
-  "type": "module",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
+  "name": "reverse-twitter-notifications-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun --packages external && bunx tsc --emitDeclarationOnly"
-  },
-  "devDependencies": {
-    "@types/bun": "^1.2.0",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "twitter-openapi-typescript": "^0.0.55"
+    "build": "bun run --cwd packages/core build"
   }
 }

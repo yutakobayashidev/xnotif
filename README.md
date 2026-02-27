@@ -98,6 +98,23 @@ Autopush に接続し、通知受信を開始します。`state` が未指定の
 - `Decryptor` — AESGCM Web Push 復号 (ECDH + HKDF + AES-128-GCM)
 - `AutopushClient` — Mozilla Autopush WebSocket クライアント
 
+## Repository Structure
+
+```
+├── packages/core/     ← ライブラリ本体 (npm パッケージ)
+└── examples/cli/      ← CLI サンプル (元の CLI 動作を再現)
+```
+
+### examples/cli の使い方
+
+```bash
+# Cookie を入力して初期化
+bun run --cwd examples/cli init
+
+# 通知受信を開始
+bun run --cwd examples/cli start
+```
+
 ## 仕組み
 
 ```
