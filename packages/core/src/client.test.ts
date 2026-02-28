@@ -283,6 +283,100 @@ describe("client", () => {
       expect(decryptorCreate).toHaveBeenCalledOnce();
     });
 
+    describe("filter option", () => {
+      const notificationMsg = {
+        messageType: "notification" as const,
+        channelID: "chan",
+        version: "v1",
+        data: "ZW5jcnlwdGVk",
+        headers: { crypto_key: "dh=key", encryption: "salt=s" },
+      };
+
+      it("emits notification when filter returns true", async () => {
+        const decryptor = mockDecryptor();
+        const autopush = mockAutopush();
+        mockTwitter();
+        decryptor.decrypt.mockResolvedValue(
+          '{"title":"Test","body":"hello","data":{"type":"tweet"}}',
+        );
+
+        const filter = vi.fn().mockReturnValue(true);
+        const client = new NotificationClient({ ...defaultOpts, filter });
+        await client.start();
+
+        const notifPromise = new Promise<any>((resolve) => {
+          client.on("notification", resolve);
+        });
+        autopush.triggerNotification(notificationMsg);
+
+        const notification = await notifPromise;
+        expect(notification.title).toBe("Test");
+        expect(filter).toHaveBeenCalledWith(expect.objectContaining({ title: "Test" }));
+      });
+
+      it("does not emit notification when filter returns false", async () => {
+        const decryptor = mockDecryptor();
+        const autopush = mockAutopush();
+        mockTwitter();
+        decryptor.decrypt.mockResolvedValue('{"title":"Filtered","body":"nope"}');
+
+        const filter = vi.fn().mockReturnValue(false);
+        const client = new NotificationClient({ ...defaultOpts, filter });
+        await client.start();
+
+        const notifHandler = vi.fn();
+        client.on("notification", notifHandler);
+        autopush.triggerNotification(notificationMsg);
+
+        // Wait for async onNotification to complete
+        await new Promise((r) => setTimeout(r, 10));
+        expect(notifHandler).not.toHaveBeenCalled();
+        expect(filter).toHaveBeenCalledOnce();
+      });
+
+      it("emits error and discards notification when filter throws", async () => {
+        const decryptor = mockDecryptor();
+        const autopush = mockAutopush();
+        mockTwitter();
+        decryptor.decrypt.mockResolvedValue('{"title":"Boom","body":"err"}');
+
+        const filter = vi.fn().mockImplementation(() => {
+          throw new Error("filter exploded");
+        });
+        const client = new NotificationClient({ ...defaultOpts, filter });
+        await client.start();
+
+        const notifHandler = vi.fn();
+        client.on("notification", notifHandler);
+        const errorPromise = new Promise<Error>((resolve) => {
+          client.on("error", resolve);
+        });
+        autopush.triggerNotification(notificationMsg);
+
+        const error = await errorPromise;
+        expect(error.message).toBe("filter exploded");
+        expect(notifHandler).not.toHaveBeenCalled();
+      });
+
+      it("emits all notifications when filter is not specified", async () => {
+        const decryptor = mockDecryptor();
+        const autopush = mockAutopush();
+        mockTwitter();
+        decryptor.decrypt.mockResolvedValue('{"title":"NoFilter","body":"pass"}');
+
+        const client = new NotificationClient(defaultOpts);
+        await client.start();
+
+        const notifPromise = new Promise<any>((resolve) => {
+          client.on("notification", resolve);
+        });
+        autopush.triggerNotification(notificationMsg);
+
+        const notification = await notifPromise;
+        expect(notification.title).toBe("NoFilter");
+      });
+    });
+
     it("start() throws and resets state on failure", async () => {
       decryptorCreate.mockRejectedValue(new Error("key gen failed"));
 
