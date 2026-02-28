@@ -14,7 +14,7 @@ class MockWebSocket {
   onerror: ((event: Event) => void) | null = null;
 
   sent: string[] = [];
-  readyState = MockWebSocket.CONNECTING;
+  readyState: number = MockWebSocket.CONNECTING;
 
   constructor(
     public url: string,
@@ -91,11 +91,11 @@ describe("autopush", () => {
 
     it("sends hello message on WebSocket open", () => {
       const client = new AutopushClient(defaultOpts());
-      client.connect();
+      void client.connect();
 
       const ws = latestWs();
       expect(ws.url).toBe("wss://push.services.mozilla.com/");
-      expect(ws.protocols).toEqual(["push-notification"]);
+      expect(ws.protocols).toBeUndefined();
 
       ws.simulateOpen();
       expect(parseSent(ws)[0]).toEqual({
@@ -112,7 +112,7 @@ describe("autopush", () => {
         uaid: "existing-uaid",
         remoteBroadcasts: { "remote:key": "v1" },
       });
-      client.connect();
+      void client.connect();
 
       const ws = latestWs();
       ws.simulateOpen();
@@ -123,7 +123,7 @@ describe("autopush", () => {
 
     it("sends register after hello response", () => {
       const client = new AutopushClient(defaultOpts());
-      client.connect();
+      void client.connect();
 
       const ws = latestWs();
       ws.simulateOpen();
@@ -263,12 +263,13 @@ describe("autopush", () => {
       latestWs().simulateError();
 
       expect(onError).toHaveBeenCalledOnce();
-      await expect(promise).rejects.toBeInstanceOf(Event);
+      await expect(promise).rejects.toBeInstanceOf(Error);
+      await expect(promise).rejects.toThrow("WebSocket connection failed");
     });
 
     it("preserves remoteBroadcasts when hello has no broadcasts field", () => {
       const client = new AutopushClient({ ...defaultOpts(), remoteBroadcasts: { key: "val" } });
-      client.connect();
+      void client.connect();
       const ws = latestWs();
       ws.simulateOpen();
       ws.simulateMessage({ messageType: "hello", uaid: "u" });

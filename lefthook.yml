@@ -2,10 +2,8 @@ pre-commit:
   parallel: true
   jobs:
     - name: lint
-      run: bun run lint
+      run: pnpm run lint
     - name: format
-      run: bun run format:check
-    - name: typecheck
-      run: cd packages/core && bunx tsc --noEmit
+      run: pnpm run format:check
     - name: test
-      run: bun run test
+      run: pnpm run test

@@ -3,10 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "init": "bun run index.ts init",
-    "start": "bun run index.ts start"
+    "init": "tsx index.ts init",
+    "start": "tsx index.ts start"
   },
   "dependencies": {
     "xnotif": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
   }
 }

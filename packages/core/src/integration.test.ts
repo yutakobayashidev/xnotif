@@ -54,7 +54,7 @@ class AutoRespondWebSocket {
   onmessage: ((event: MessageEvent) => void) | null = null;
   onclose: ((event: CloseEvent) => void) | null = null;
   onerror: ((event: Event) => void) | null = null;
-  readyState = AutoRespondWebSocket.CONNECTING;
+  readyState: number = AutoRespondWebSocket.CONNECTING;
   sent: string[] = [];
 
   constructor(

@@ -12,7 +12,7 @@ vi.mock("twitter-openapi-typescript-generated", async () => {
       constructor(config: any) {
         this.configuration = config;
       }
-      async request(context: any, initOverride?: any): Promise<Response> {
+      async request(context: any, _initOverride?: any): Promise<Response> {
         lastRequestContext = context;
         return mockResponse;
       }
