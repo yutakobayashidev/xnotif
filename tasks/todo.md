@@ -88,3 +88,33 @@ Parallel: #2/#3/#4/#5 (all depend only on #1), #6/#7 (depend on Phase 2)
   Verify: CI passes with all tests green and coverage report visible in logs.
   Files: .github/workflows/ci.yml
   Depends: #2, #3, #4, #5, #6, #7
+
+## Task: README Value Proposition Update (2026-02-28)
+
+- [x] #1 Add a "Why xnotif" section to README
+  What: Add concise reasons to adopt xnotif with risk/ops context
+  Where: packages/core/README.md
+  Why: Clarify practical advantages for users evaluating this library
+  Verify: Section exists and claims align with implementation (single registration API + push receive path)
+
+- [x] #2 Emphasize cookie-minimizing operation
+  What: Document that cookies are mainly needed for registration and not continuous polling
+  Where: packages/core/README.md
+  Why: Communicate lower operational/security burden and reduced ban-risk profile vs polling/scraping
+  Verify: README explicitly states one-time registration pattern and state persistence behavior
+
+- [x] #3 Review docs impact
+  What: Confirm whether README/AGENTS/CLAUDE/docs need additional updates
+  Where: repository docs
+  Why: Keep documentation consistency
+  Verify: Note decision in review section
+
+### Review (README Value Proposition Update)
+
+- Result: Added `## Why xnotif` section with cookie-minimizing operation, lower ban-risk profile vs polling/scraping, state-based re-registration skip, and operational simplicity.
+- Verification: Claims were matched against implementation in `packages/core/src/client.ts` and `packages/core/src/twitter.ts`.
+- Doc impact check:
+  - `README.md`/`packages/core/README.md`: Updated.
+  - `AGENTS.md`: No change needed (no agent instruction change in this task).
+  - `CLAUDE.md`: No change needed (no Claude instruction change in this task).
+  - `docs/`: No change needed (feature/architecture behavior unchanged).

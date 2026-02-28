@@ -28,6 +28,13 @@ npm install xnotif
 
 > Requires Node.js >= 22.0.0
 
+## Why xnotif
+
+- **Cookie exposure can be minimized** - Cookies are mainly used for one registration call to `POST /1.1/notifications/settings/login.json`. After registration, notifications are received through Mozilla Autopush WebSocket, so you are not continuously calling internal Twitter endpoints with cookies.
+- **Lower ban-risk profile than polling/scraping** - xnotif avoids headless-browser automation and high-frequency private API polling. The runtime traffic pattern is mostly one registration plus push-stream consumption.
+- **Avoid unnecessary re-registration** - If you persist `ClientState` from the `connected` event, restart with `state`, and the endpoint is unchanged, xnotif skips the registration call.
+- **Simple operations** - No API key provisioning, no webhook server, and no request-signing stack. A single Node.js process can receive and process notifications.
+
 ## Notification Payload
 
 Each `notification` event delivers a `TwitterNotification` object:
