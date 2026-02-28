@@ -19,37 +19,6 @@ client.on("notification", (n) => {
 await client.start();
 ```
 
-## How It Works
-
-```mermaid
-sequenceDiagram
-    participant App as xnotif
-    participant Autopush as Mozilla Autopush<br/>wss://push.services.mozilla.com
-    participant Twitter as Twitter/X
-
-    App->>App: Generate ECDH P-256 key pair + 16-byte auth secret
-    App->>Autopush: WebSocket connect (subprotocol: push-notification)
-    Autopush-->>App: hello ACK (uaid assigned)
-    App->>Autopush: Register channel with VAPID key
-    Autopush-->>App: Push Endpoint URL
-
-    App->>Twitter: POST /1.1/notifications/settings/login.json<br/>{ token: endpoint, encryption_key1: p256dh, encryption_key2: auth }
-    Twitter-->>App: 200 OK
-
-    loop Real-time notifications
-        Twitter->>Autopush: Web Push (AESGCM encrypted payload)
-        Autopush->>App: WebSocket message
-        App->>App: ECDH shared secret (256-bit)<br/>→ HKDF-SHA256 (IKM, CEK, nonce)<br/>→ AES-128-GCM decrypt<br/>→ Strip 2-byte padding
-        App-->>App: Emit "notification" event
-    end
-```
-
-1. **Key generation** — Generate an ECDH P-256 key pair and a 16-byte auth secret via `crypto.subtle` (skipped when restoring from saved `state`)
-2. **Autopush connection** — Open a WebSocket to `wss://push.services.mozilla.com` with the `push-notification` subprotocol, send a `hello` handshake, then register a channel to obtain a Push Endpoint URL
-3. **Twitter registration** — POST the Push Endpoint, base64url-encoded public key, and auth secret to Twitter's `/1.1/notifications/settings/login.json`, authenticated with your session cookies (`auth_token` / `ct0`)
-4. **Receive & decrypt** — When Twitter pushes an AESGCM-encrypted payload through Autopush, derive a shared secret via ECDH, expand it with HKDF-SHA256 into a 16-byte CEK and 12-byte nonce, then decrypt with AES-128-GCM
-5. **Emit** — Parse the decrypted JSON into a `TwitterNotification` and fire it as a `notification` event
-
 ## Install
 
 ```bash
@@ -143,6 +112,37 @@ await client.start();
 
 - `Decryptor` — AESGCM Web Push decryption (ECDH + HKDF + AES-128-GCM)
 - `AutopushClient` — Mozilla Autopush WebSocket client
+
+## How It Works
+
+```mermaid
+sequenceDiagram
+    participant App as xnotif
+    participant Autopush as Mozilla Autopush<br/>wss://push.services.mozilla.com
+    participant Twitter as Twitter/X
+
+    App->>App: Generate ECDH P-256 key pair + 16-byte auth secret
+    App->>Autopush: WebSocket connect (subprotocol: push-notification)
+    Autopush-->>App: hello ACK (uaid assigned)
+    App->>Autopush: Register channel with VAPID key
+    Autopush-->>App: Push Endpoint URL
+
+    App->>Twitter: POST /1.1/notifications/settings/login.json<br/>{ token: endpoint, encryption_key1: p256dh, encryption_key2: auth }
+    Twitter-->>App: 200 OK
+
+    loop Real-time notifications
+        Twitter->>Autopush: Web Push (AESGCM encrypted payload)
+        Autopush->>App: WebSocket message
+        App->>App: ECDH shared secret (256-bit)<br/>→ HKDF-SHA256 (IKM, CEK, nonce)<br/>→ AES-128-GCM decrypt<br/>→ Strip 2-byte padding
+        App-->>App: Emit "notification" event
+    end
+```
+
+1. **Key generation** — Generate an ECDH P-256 key pair and a 16-byte auth secret via `crypto.subtle` (skipped when restoring from saved `state`)
+2. **Autopush connection** — Open a WebSocket to `wss://push.services.mozilla.com` with the `push-notification` subprotocol, send a `hello` handshake, then register a channel to obtain a Push Endpoint URL
+3. **Twitter registration** — POST the Push Endpoint, base64url-encoded public key, and auth secret to Twitter's `/1.1/notifications/settings/login.json`, authenticated with your session cookies (`auth_token` / `ct0`)
+4. **Receive & decrypt** — When Twitter pushes an AESGCM-encrypted payload through Autopush, derive a shared secret via ECDH, expand it with HKDF-SHA256 into a 16-byte CEK and 12-byte nonce, then decrypt with AES-128-GCM
+5. **Emit** — Parse the decrypted JSON into a `TwitterNotification` and fire it as a `notification` event
 
 ## License
 
