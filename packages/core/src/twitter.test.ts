@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
 
 let lastRequestContext: any = null;
-let lastInitOverride: any = null;
 let mockResponse: Response = new Response("ok", { status: 200 });
 
 vi.mock("twitter-openapi-typescript-generated", async () => {
@@ -15,7 +14,6 @@ vi.mock("twitter-openapi-typescript-generated", async () => {
       }
       async request(context: any, initOverride?: any): Promise<Response> {
         lastRequestContext = context;
-        lastInitOverride = initOverride;
         return mockResponse;
       }
     },
@@ -65,7 +63,6 @@ describe("twitter", () => {
   describe("registerPush", () => {
     beforeEach(() => {
       lastRequestContext = null;
-      lastInitOverride = null;
       mockResponse = new Response("ok", { status: 200 });
     });
 

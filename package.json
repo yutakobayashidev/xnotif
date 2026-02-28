@@ -9,12 +9,14 @@
     "build": "bun run --cwd packages/core build",
     "test": "bun run --cwd packages/core test",
     "release": "bun run build && bunx changeset publish",
-    "lint": "oxlint .",
+    "lint": "oxlint --ignore-pattern .direnv .",
     "format": "oxfmt --write .",
-    "format:check": "oxfmt --check ."
+    "format:check": "oxfmt --check .",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
+    "lefthook": "^2.1.1",
     "oxfmt": "^0.35.0",
     "oxlint": "^1.50.0"
   }

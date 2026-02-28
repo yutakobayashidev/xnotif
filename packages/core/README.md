@@ -46,21 +46,21 @@ Each `notification` event delivers a `TwitterNotification` object:
     "tag": "mention_12345",
     "lang": "en",
     "scribe_target": "mention",
-    "impression_id": "abc123"
-  }
+    "impression_id": "abc123",
+  },
 }
 ```
 
 Top-level fields:
 
-| Field       | Type       | Description                                       |
-| ----------- | ---------- | ------------------------------------------------- |
-| `title`     | `string`   | Who triggered the notification                    |
-| `body`      | `string`   | Human-readable description                        |
-| `icon`      | `string?`  | Profile image URL                                 |
-| `timestamp` | `number?`  | Unix epoch in milliseconds                        |
-| `tag`       | `string?`  | Deduplication tag                                 |
-| `data`      | `object?`  | Structured metadata (see `data.type` for routing) |
+| Field       | Type      | Description                                       |
+| ----------- | --------- | ------------------------------------------------- |
+| `title`     | `string`  | Who triggered the notification                    |
+| `body`      | `string`  | Human-readable description                        |
+| `icon`      | `string?` | Profile image URL                                 |
+| `timestamp` | `number?` | Unix epoch in milliseconds                        |
+| `tag`       | `string?` | Deduplication tag                                 |
+| `data`      | `object?` | Structured metadata (see `data.type` for routing) |
 
 ## Getting Cookies
 
