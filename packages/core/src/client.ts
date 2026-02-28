@@ -68,6 +68,17 @@ export class NotificationClient extends EventEmitter<NotificationClientEvents> {
               payload,
             );
             const notification: TwitterNotification = JSON.parse(json);
+            if (this.options.filter) {
+              try {
+                if (!this.options.filter(notification)) return;
+              } catch (filterErr) {
+                this.emit(
+                  "error",
+                  filterErr instanceof Error ? filterErr : new Error(String(filterErr)),
+                );
+                return;
+              }
+            }
             this.emit("notification", notification);
           } catch (err) {
             this.emit("error", err instanceof Error ? err : new Error(String(err)));
