@@ -23,10 +23,8 @@
 ## Hypothesis
 
 - **H1**: `filter` オプションを追加すれば、ユーザーは通知ハンドラ内の条件分岐を削除でき、セットアップコードが簡潔になる
-- **H2**: 宣言的フィルタ (`{ types: ["tweet"] }`) を predicate の糖衣構文として提供すれば、大半のユースケースを1行で表現できる
 
 ## Expected Outcome
 
-- `createClient({ cookies, filter: { types: ["tweet"] } })` で特定タイプの通知のみ受信可能
-- predicate 関数で任意の条件指定が可能（`filter: (n) => n.body.includes("keyword")`）
+- predicate 関数で任意の条件指定が可能（`filter: (n) => n.data?.type === "tweet"`）
 - 既存の API に破壊的変更なし — `filter` 未指定時は従来通り全通知を発火
