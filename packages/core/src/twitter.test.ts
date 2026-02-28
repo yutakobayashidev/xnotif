@@ -50,10 +50,6 @@ const testSubscription: PushSubscription = {
 };
 
 describe("createClient", () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
 	it("calls getClientFromCookies with the provided cookies", async () => {
 		const cookies = { ct0: "csrf-token", auth_token: "auth123" };
 		const fakeClient = makeMockClient();
@@ -67,7 +63,6 @@ describe("createClient", () => {
 
 describe("registerPush", () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
 		lastRequestContext = null;
 		lastInitOverride = null;
 		mockResponse = new Response("ok", { status: 200 });
