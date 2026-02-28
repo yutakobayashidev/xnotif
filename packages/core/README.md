@@ -22,10 +22,10 @@ await client.start();
 ## Install
 
 ```bash
-bun add xnotif
+npm install xnotif
 ```
 
-> Requires Bun >= 1.0.0
+> Requires Node.js >= 22.0.0
 
 ## Notification Payload
 

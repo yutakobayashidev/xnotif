@@ -41,7 +41,7 @@ export class AutopushClient {
   connect(): Promise<string> {
     return new Promise((resolve, reject) => {
       let resolved = false;
-      this.ws = new WebSocket(AUTOPUSH_URL, ["push-notification"]);
+      this.ws = new WebSocket(AUTOPUSH_URL);
 
       this.ws.onopen = () => {
         this.reconnectDelay = 1000;
@@ -112,11 +112,15 @@ export class AutopushClient {
         }
       };
 
-      this.ws.onerror = (err) => {
-        this.options.onError?.(err);
+      this.ws.onerror = (event) => {
+        const error =
+          typeof ErrorEvent !== "undefined" && event instanceof ErrorEvent && event.message
+            ? new Error(event.message)
+            : new Error("WebSocket connection failed");
+        this.options.onError?.(error);
         if (!resolved) {
           resolved = true;
-          reject(err);
+          reject(error);
         }
       };
     });

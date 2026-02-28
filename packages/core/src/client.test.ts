@@ -23,6 +23,9 @@ import { Decryptor } from "./decrypt";
 import { AutopushClient } from "./autopush";
 import { createClient as createTwitterClient, registerPush } from "./twitter";
 
+// eslint-disable-next-line typescript-eslint/unbound-method -- vitest mock
+const decryptorCreate = vi.mocked(Decryptor.create);
+
 function mockDecryptor(publicKey = "pub-key", auth = "auth-secret") {
   const decryptor = {
     getJwk: vi.fn().mockReturnValue({ crv: "P-256", kty: "EC", x: "x", y: "y", d: "d" }),
@@ -30,7 +33,7 @@ function mockDecryptor(publicKey = "pub-key", auth = "auth-secret") {
     getPublicKeyBase64url: vi.fn().mockReturnValue(publicKey),
     decrypt: vi.fn().mockResolvedValue('{"title":"Test","body":"Hello"}'),
   };
-  vi.mocked(Decryptor.create).mockResolvedValue(decryptor as any);
+  decryptorCreate.mockResolvedValue(decryptor as any);
   return decryptor;
 }
 
@@ -93,7 +96,7 @@ describe("client", () => {
       const client = new NotificationClient(defaultOpts);
       await client.start();
 
-      expect(Decryptor.create).toHaveBeenCalledOnce();
+      expect(decryptorCreate).toHaveBeenCalledOnce();
       expect(AutopushClient).toHaveBeenCalledOnce();
       expect(createTwitterClient).toHaveBeenCalledWith(defaultOpts.cookies);
       expect(registerPush).toHaveBeenCalledOnce();
@@ -115,7 +118,7 @@ describe("client", () => {
       const client = new NotificationClient({ ...defaultOpts, state: savedState });
       await client.start();
 
-      expect(Decryptor.create).toHaveBeenCalledWith(
+      expect(decryptorCreate).toHaveBeenCalledWith(
         savedState.decryptor.jwk,
         savedState.decryptor.auth,
       );
@@ -277,11 +280,11 @@ describe("client", () => {
       await client.start();
       await client.start();
 
-      expect(Decryptor.create).toHaveBeenCalledOnce();
+      expect(decryptorCreate).toHaveBeenCalledOnce();
     });
 
     it("start() throws and resets state on failure", async () => {
-      vi.mocked(Decryptor.create).mockRejectedValue(new Error("key gen failed"));
+      decryptorCreate.mockRejectedValue(new Error("key gen failed"));
 
       const client = new NotificationClient(defaultOpts);
       await expect(client.start()).rejects.toThrow("key gen failed");
@@ -291,7 +294,7 @@ describe("client", () => {
       mockAutopush();
       mockTwitter();
       await client.start();
-      expect(Decryptor.create).toHaveBeenCalledTimes(2);
+      expect(decryptorCreate).toHaveBeenCalledTimes(2);
     });
   });
 });

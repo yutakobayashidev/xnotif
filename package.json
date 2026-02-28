@@ -1,15 +1,11 @@
 {
   "name": "reverse-twitter-notifications-monorepo",
   "private": true,
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ],
   "scripts": {
-    "build": "bun run --cwd packages/core build",
-    "test": "bun run --cwd packages/core test",
-    "release": "bun run build && bunx changeset publish",
-    "lint": "oxlint --ignore-pattern .direnv .",
+    "build": "pnpm --filter xnotif build",
+    "test": "pnpm --filter xnotif test",
+    "release": "pnpm run build && pnpm changeset publish",
+    "lint": "oxlint --type-aware --type-check --ignore-pattern .direnv --ignore-pattern '**/test-encrypt.ts' .",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
     "prepare": "lefthook install"
@@ -18,6 +14,13 @@
     "@changesets/cli": "^2.29.8",
     "lefthook": "^2.1.1",
     "oxfmt": "^0.35.0",
-    "oxlint": "^1.50.0"
+    "oxlint": "^1.50.0",
+    "oxlint-tsgolint": "^0.15.0"
+  },
+  "packageManager": "pnpm@10.6.2+sha512.47870716bea1572b53df34ad8647b42962bc790ce2bf4562ba0f643237d7302a3d6a8ecef9e4bdfc01d23af1969aa90485d4cebb0b9638fa5ef1daef656f6c1b",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "lefthook"
+    ]
   }
 }

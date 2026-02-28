@@ -23,15 +23,15 @@
     "README.md"
   ],
   "type": "module",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun --packages external && bunx tsc --emitDeclarationOnly",
+    "build": "tsdown src/index.ts --format esm",
     "test": "vitest run --coverage"
   },
   "dependencies": {
@@ -39,12 +39,13 @@
     "twitter-openapi-typescript-generated": "^0.0.38"
   },
   "devDependencies": {
-    "@types/bun": "^1.2.0",
+    "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.0.18",
+    "tsdown": "^0.20.3",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
   "engines": {
-    "bun": ">=1.0.0"
+    "node": ">=22.0.0"
   }
 }
