@@ -76,218 +76,222 @@ const defaultOpts: NotificationClientOptions = {
   cookies: { auth_token: "token", ct0: "csrf" },
 };
 
-describe("NotificationClient", () => {
-  it("createClient() returns a NotificationClient instance", () => {
-    const client = createClient(defaultOpts);
-    expect(client).toBeInstanceOf(NotificationClient);
-  });
-
-  it("start() creates Decryptor, AutopushClient and registers push", async () => {
-    mockDecryptor();
-    mockAutopush();
-    mockTwitter();
-
-    const client = new NotificationClient(defaultOpts);
-    await client.start();
-
-    expect(Decryptor.create).toHaveBeenCalledOnce();
-    expect(AutopushClient).toHaveBeenCalledOnce();
-    expect(createTwitterClient).toHaveBeenCalledWith(defaultOpts.cookies);
-    expect(registerPush).toHaveBeenCalledOnce();
-  });
-
-  it("start() restores state from options.state", async () => {
-    mockDecryptor();
-    mockAutopush("https://push.example.com/old-ep");
-    mockTwitter();
-
-    const savedState: ClientState = {
-      uaid: "saved-uaid",
-      channelId: "saved-channel",
-      endpoint: "https://push.example.com/old-ep",
-      remoteBroadcasts: {},
-      decryptor: { jwk: { crv: "P-256", kty: "EC" } as JsonWebKey, auth: "saved-auth" },
-    };
-
-    const client = new NotificationClient({ ...defaultOpts, state: savedState });
-    await client.start();
-
-    expect(Decryptor.create).toHaveBeenCalledWith(
-      savedState.decryptor.jwk,
-      savedState.decryptor.auth,
-    );
-  });
-
-  it("start() skips registerPush when endpoint matches saved state", async () => {
-    const endpoint = "https://push.example.com/same-ep";
-    mockDecryptor();
-    mockAutopush(endpoint);
-
-    const client = new NotificationClient({
-      ...defaultOpts,
-      state: {
-        uaid: "u",
-        channelId: "c",
-        endpoint,
-        remoteBroadcasts: {},
-        decryptor: { jwk: {} as JsonWebKey, auth: "a" },
-      },
+describe("client", () => {
+  describe("createClient", () => {
+    it("returns a NotificationClient instance", () => {
+      const client = createClient(defaultOpts);
+      expect(client).toBeInstanceOf(NotificationClient);
     });
-    await client.start();
-
-    expect(createTwitterClient).not.toHaveBeenCalled();
-    expect(registerPush).not.toHaveBeenCalled();
   });
 
-  it("start() registers push when endpoint changes", async () => {
-    mockDecryptor();
-    mockAutopush("https://push.example.com/new-ep");
-    mockTwitter();
+  describe("NotificationClient", () => {
+    it("start() creates Decryptor, AutopushClient and registers push", async () => {
+      mockDecryptor();
+      mockAutopush();
+      mockTwitter();
 
-    const client = new NotificationClient({
-      ...defaultOpts,
-      state: {
-        uaid: "u",
-        channelId: "c",
+      const client = new NotificationClient(defaultOpts);
+      await client.start();
+
+      expect(Decryptor.create).toHaveBeenCalledOnce();
+      expect(AutopushClient).toHaveBeenCalledOnce();
+      expect(createTwitterClient).toHaveBeenCalledWith(defaultOpts.cookies);
+      expect(registerPush).toHaveBeenCalledOnce();
+    });
+
+    it("start() restores state from options.state", async () => {
+      mockDecryptor();
+      mockAutopush("https://push.example.com/old-ep");
+      mockTwitter();
+
+      const savedState: ClientState = {
+        uaid: "saved-uaid",
+        channelId: "saved-channel",
         endpoint: "https://push.example.com/old-ep",
         remoteBroadcasts: {},
-        decryptor: { jwk: {} as JsonWebKey, auth: "a" },
-      },
-    });
-    await client.start();
+        decryptor: { jwk: { crv: "P-256", kty: "EC" } as JsonWebKey, auth: "saved-auth" },
+      };
 
-    expect(registerPush).toHaveBeenCalledOnce();
-  });
+      const client = new NotificationClient({ ...defaultOpts, state: savedState });
+      await client.start();
 
-  it("emits connected event with ClientState", async () => {
-    mockDecryptor();
-    mockAutopush();
-    mockTwitter();
-
-    const client = new NotificationClient(defaultOpts);
-    const connectedPromise = new Promise<ClientState>((resolve) => {
-      client.on("connected", resolve);
+      expect(Decryptor.create).toHaveBeenCalledWith(
+        savedState.decryptor.jwk,
+        savedState.decryptor.auth,
+      );
     });
 
-    await client.start();
-    const state = await connectedPromise;
+    it("start() skips registerPush when endpoint matches saved state", async () => {
+      const endpoint = "https://push.example.com/same-ep";
+      mockDecryptor();
+      mockAutopush(endpoint);
 
-    expect(state.uaid).toBe("test-uaid");
-    expect(state.endpoint).toBe("https://push.example.com/ep");
-    expect(state.decryptor.jwk).toBeDefined();
-    expect(state.decryptor.auth).toBe("auth-secret");
-  });
+      const client = new NotificationClient({
+        ...defaultOpts,
+        state: {
+          uaid: "u",
+          channelId: "c",
+          endpoint,
+          remoteBroadcasts: {},
+          decryptor: { jwk: {} as JsonWebKey, auth: "a" },
+        },
+      });
+      await client.start();
 
-  it("emits notification event when autopush receives notification", async () => {
-    const decryptor = mockDecryptor();
-    const autopush = mockAutopush();
-    mockTwitter();
-
-    decryptor.decrypt.mockResolvedValue('{"title":"New tweet","body":"@user mentioned you"}');
-
-    const client = new NotificationClient(defaultOpts);
-    await client.start();
-
-    const notifPromise = new Promise<any>((resolve) => {
-      client.on("notification", resolve);
+      expect(createTwitterClient).not.toHaveBeenCalled();
+      expect(registerPush).not.toHaveBeenCalled();
     });
 
-    autopush.triggerNotification({
-      messageType: "notification",
-      channelID: "chan",
-      version: "v1",
-      data: "ZW5jcnlwdGVk",
-      headers: { crypto_key: "dh=key", encryption: "salt=s" },
+    it("start() registers push when endpoint changes", async () => {
+      mockDecryptor();
+      mockAutopush("https://push.example.com/new-ep");
+      mockTwitter();
+
+      const client = new NotificationClient({
+        ...defaultOpts,
+        state: {
+          uaid: "u",
+          channelId: "c",
+          endpoint: "https://push.example.com/old-ep",
+          remoteBroadcasts: {},
+          decryptor: { jwk: {} as JsonWebKey, auth: "a" },
+        },
+      });
+      await client.start();
+
+      expect(registerPush).toHaveBeenCalledOnce();
     });
 
-    const notification = await notifPromise;
-    expect(notification.title).toBe("New tweet");
-  });
+    it("emits connected event with ClientState", async () => {
+      mockDecryptor();
+      mockAutopush();
+      mockTwitter();
 
-  it("emits error event on decrypt failure", async () => {
-    const decryptor = mockDecryptor();
-    const autopush = mockAutopush();
-    mockTwitter();
+      const client = new NotificationClient(defaultOpts);
+      const connectedPromise = new Promise<ClientState>((resolve) => {
+        client.on("connected", resolve);
+      });
 
-    decryptor.decrypt.mockRejectedValue(new Error("decrypt failed"));
+      await client.start();
+      const state = await connectedPromise;
 
-    const client = new NotificationClient(defaultOpts);
-    await client.start();
-
-    const errorPromise = new Promise<Error>((resolve) => {
-      client.on("error", resolve);
+      expect(state.uaid).toBe("test-uaid");
+      expect(state.endpoint).toBe("https://push.example.com/ep");
+      expect(state.decryptor.jwk).toBeDefined();
+      expect(state.decryptor.auth).toBe("auth-secret");
     });
 
-    autopush.triggerNotification({
-      messageType: "notification",
-      channelID: "chan",
-      version: "v1",
-      data: "bad",
-      headers: { crypto_key: "ck", encryption: "enc" },
+    it("emits notification event when autopush receives notification", async () => {
+      const decryptor = mockDecryptor();
+      const autopush = mockAutopush();
+      mockTwitter();
+
+      decryptor.decrypt.mockResolvedValue('{"title":"New tweet","body":"@user mentioned you"}');
+
+      const client = new NotificationClient(defaultOpts);
+      await client.start();
+
+      const notifPromise = new Promise<any>((resolve) => {
+        client.on("notification", resolve);
+      });
+
+      autopush.triggerNotification({
+        messageType: "notification",
+        channelID: "chan",
+        version: "v1",
+        data: "ZW5jcnlwdGVk",
+        headers: { crypto_key: "dh=key", encryption: "salt=s" },
+      });
+
+      const notification = await notifPromise;
+      expect(notification.title).toBe("New tweet");
     });
 
-    const error = await errorPromise;
-    expect(error.message).toBe("decrypt failed");
-  });
+    it("emits error event on decrypt failure", async () => {
+      const decryptor = mockDecryptor();
+      const autopush = mockAutopush();
+      mockTwitter();
 
-  it("emits disconnected and reconnecting events", async () => {
-    mockDecryptor();
-    const autopush = mockAutopush();
-    mockTwitter();
+      decryptor.decrypt.mockRejectedValue(new Error("decrypt failed"));
 
-    const client = new NotificationClient(defaultOpts);
-    await client.start();
+      const client = new NotificationClient(defaultOpts);
+      await client.start();
 
-    const disconnectedPromise = new Promise<void>((resolve) => {
-      client.on("disconnected", resolve);
+      const errorPromise = new Promise<Error>((resolve) => {
+        client.on("error", resolve);
+      });
+
+      autopush.triggerNotification({
+        messageType: "notification",
+        channelID: "chan",
+        version: "v1",
+        data: "bad",
+        headers: { crypto_key: "ck", encryption: "enc" },
+      });
+
+      const error = await errorPromise;
+      expect(error.message).toBe("decrypt failed");
     });
-    const reconnectingPromise = new Promise<number>((resolve) => {
-      client.on("reconnecting", resolve);
+
+    it("emits disconnected and reconnecting events", async () => {
+      mockDecryptor();
+      const autopush = mockAutopush();
+      mockTwitter();
+
+      const client = new NotificationClient(defaultOpts);
+      await client.start();
+
+      const disconnectedPromise = new Promise<void>((resolve) => {
+        client.on("disconnected", resolve);
+      });
+      const reconnectingPromise = new Promise<number>((resolve) => {
+        client.on("reconnecting", resolve);
+      });
+
+      autopush.triggerDisconnected();
+      autopush.triggerReconnecting(1000);
+
+      await disconnectedPromise;
+      const delay = await reconnectingPromise;
+      expect(delay).toBe(1000);
     });
 
-    autopush.triggerDisconnected();
-    autopush.triggerReconnecting(1000);
+    it("stop() closes autopush connection", async () => {
+      mockDecryptor();
+      const autopush = mockAutopush();
+      mockTwitter();
 
-    await disconnectedPromise;
-    const delay = await reconnectingPromise;
-    expect(delay).toBe(1000);
-  });
+      const client = new NotificationClient(defaultOpts);
+      await client.start();
+      client.stop();
 
-  it("stop() closes autopush connection", async () => {
-    mockDecryptor();
-    const autopush = mockAutopush();
-    mockTwitter();
+      expect(autopush.instance.close).toHaveBeenCalledOnce();
+    });
 
-    const client = new NotificationClient(defaultOpts);
-    await client.start();
-    client.stop();
+    it("start() is idempotent when already running", async () => {
+      mockDecryptor();
+      mockAutopush();
+      mockTwitter();
 
-    expect(autopush.instance.close).toHaveBeenCalledOnce();
-  });
+      const client = new NotificationClient(defaultOpts);
+      await client.start();
+      await client.start();
 
-  it("start() is idempotent when already running", async () => {
-    mockDecryptor();
-    mockAutopush();
-    mockTwitter();
+      expect(Decryptor.create).toHaveBeenCalledOnce();
+    });
 
-    const client = new NotificationClient(defaultOpts);
-    await client.start();
-    await client.start();
+    it("start() throws and resets state on failure", async () => {
+      vi.mocked(Decryptor.create).mockRejectedValue(new Error("key gen failed"));
 
-    expect(Decryptor.create).toHaveBeenCalledOnce();
-  });
+      const client = new NotificationClient(defaultOpts);
+      await expect(client.start()).rejects.toThrow("key gen failed");
 
-  it("start() throws and resets state on failure", async () => {
-    vi.mocked(Decryptor.create).mockRejectedValue(new Error("key gen failed"));
-
-    const client = new NotificationClient(defaultOpts);
-    await expect(client.start()).rejects.toThrow("key gen failed");
-
-    // Should be able to start again after failure
-    mockDecryptor();
-    mockAutopush();
-    mockTwitter();
-    await client.start();
-    expect(Decryptor.create).toHaveBeenCalledTimes(2);
+      // Should be able to start again after failure
+      mockDecryptor();
+      mockAutopush();
+      mockTwitter();
+      await client.start();
+      expect(Decryptor.create).toHaveBeenCalledTimes(2);
+    });
   });
 });

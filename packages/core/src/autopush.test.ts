@@ -71,206 +71,208 @@ function driveHandshake(
   ws.simulateMessage({ messageType: "register", status: 200, pushEndpoint: endpoint });
 }
 
-describe("AutopushClient", () => {
-  const defaultOpts = () => ({
-    channelId: "chan-1",
-    vapidKey: "vapid-key-123",
-    onNotification: vi.fn(),
-  });
-
-  beforeEach(() => {
-    MockWebSocket.reset();
-    vi.stubGlobal("WebSocket", MockWebSocket);
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.useRealTimers();
-  });
-
-  it("sends hello message on WebSocket open", () => {
-    const client = new AutopushClient(defaultOpts());
-    client.connect();
-
-    const ws = latestWs();
-    expect(ws.url).toBe("wss://push.services.mozilla.com/");
-    expect(ws.protocols).toEqual(["push-notification"]);
-
-    ws.simulateOpen();
-    expect(parseSent(ws)[0]).toEqual({
-      messageType: "hello",
-      use_webpush: true,
-      uaid: "",
-      broadcasts: {},
+describe("autopush", () => {
+  describe("AutopushClient", () => {
+    const defaultOpts = () => ({
+      channelId: "chan-1",
+      vapidKey: "vapid-key-123",
+      onNotification: vi.fn(),
     });
-  });
 
-  it("sends hello with provided uaid and remoteBroadcasts", () => {
-    const client = new AutopushClient({
-      ...defaultOpts(),
-      uaid: "existing-uaid",
-      remoteBroadcasts: { "remote:key": "v1" },
+    beforeEach(() => {
+      MockWebSocket.reset();
+      vi.stubGlobal("WebSocket", MockWebSocket);
     });
-    client.connect();
 
-    const ws = latestWs();
-    ws.simulateOpen();
-    const hello = parseSent(ws)[0];
-    expect(hello.uaid).toBe("existing-uaid");
-    expect(hello.broadcasts).toEqual({ "remote:key": "v1" });
-  });
-
-  it("sends register after hello response", () => {
-    const client = new AutopushClient(defaultOpts());
-    client.connect();
-
-    const ws = latestWs();
-    ws.simulateOpen();
-    ws.simulateMessage({ messageType: "hello", uaid: "server-uaid" });
-
-    expect(parseSent(ws)[1]).toEqual({
-      messageType: "register",
-      channelID: "chan-1",
-      key: "vapid-key-123",
+    afterEach(() => {
+      vi.restoreAllMocks();
+      vi.useRealTimers();
     });
-  });
 
-  it("resolves with endpoint on successful register", async () => {
-    const client = new AutopushClient(defaultOpts());
-    const promise = client.connect();
-    driveHandshake(latestWs());
-    await expect(promise).resolves.toBe("https://example.com/push/ep");
-  });
+    it("sends hello message on WebSocket open", () => {
+      const client = new AutopushClient(defaultOpts());
+      client.connect();
 
-  it("rejects on failed register", async () => {
-    const client = new AutopushClient(defaultOpts());
-    const promise = client.connect();
+      const ws = latestWs();
+      expect(ws.url).toBe("wss://push.services.mozilla.com/");
+      expect(ws.protocols).toEqual(["push-notification"]);
 
-    const ws = latestWs();
-    ws.simulateOpen();
-    ws.simulateMessage({ messageType: "hello", uaid: "u" });
-    ws.simulateMessage({ messageType: "register", status: 409 });
-
-    await expect(promise).rejects.toThrow("Register failed: status 409");
-  });
-
-  it("sends ack and calls onNotification on notification", async () => {
-    const onNotification = vi.fn();
-    const client = new AutopushClient({ ...defaultOpts(), onNotification });
-    const promise = client.connect();
-    const ws = latestWs();
-    driveHandshake(ws);
-    await promise;
-
-    const notification: AutopushNotification = {
-      messageType: "notification",
-      channelID: "chan-1",
-      version: "v42",
-      data: "encrypted-payload",
-      headers: { crypto_key: "ck", encryption: "enc" },
-    };
-    ws.simulateMessage(notification);
-
-    const messages = parseSent(ws);
-    expect(messages[2]).toEqual({
-      messageType: "ack",
-      updates: [{ channelID: "chan-1", version: "v42", code: 100 }],
+      ws.simulateOpen();
+      expect(parseSent(ws)[0]).toEqual({
+        messageType: "hello",
+        use_webpush: true,
+        uaid: "",
+        broadcasts: {},
+      });
     });
-    expect(onNotification).toHaveBeenCalledWith(notification);
-  });
 
-  it("updates state getters after handshake", async () => {
-    const client = new AutopushClient(defaultOpts());
-    const promise = client.connect();
+    it("sends hello with provided uaid and remoteBroadcasts", () => {
+      const client = new AutopushClient({
+        ...defaultOpts(),
+        uaid: "existing-uaid",
+        remoteBroadcasts: { "remote:key": "v1" },
+      });
+      client.connect();
 
-    expect(client.getUaid()).toBe("");
-    expect(client.getEndpoint()).toBe("");
+      const ws = latestWs();
+      ws.simulateOpen();
+      const hello = parseSent(ws)[0];
+      expect(hello.uaid).toBe("existing-uaid");
+      expect(hello.broadcasts).toEqual({ "remote:key": "v1" });
+    });
 
-    const ws = latestWs();
-    ws.simulateOpen();
-    ws.simulateMessage({ messageType: "hello", uaid: "new-uaid", broadcasts: { foo: "v2" } });
-    expect(client.getUaid()).toBe("new-uaid");
-    expect(client.getRemoteBroadcasts()).toEqual({ foo: "v2" });
+    it("sends register after hello response", () => {
+      const client = new AutopushClient(defaultOpts());
+      client.connect();
 
-    ws.simulateMessage({ messageType: "register", status: 200, pushEndpoint: "https://push/ep" });
-    await promise;
-    expect(client.getEndpoint()).toBe("https://push/ep");
-  });
+      const ws = latestWs();
+      ws.simulateOpen();
+      ws.simulateMessage({ messageType: "hello", uaid: "server-uaid" });
 
-  it("close() prevents reconnection", async () => {
-    vi.useFakeTimers();
-    const onDisconnected = vi.fn();
-    const client = new AutopushClient({ ...defaultOpts(), onDisconnected });
-    const promise = client.connect();
-    const ws = latestWs();
-    driveHandshake(ws);
-    await promise;
+      expect(parseSent(ws)[1]).toEqual({
+        messageType: "register",
+        channelID: "chan-1",
+        key: "vapid-key-123",
+      });
+    });
 
-    client.close();
-    ws.simulateClose();
+    it("resolves with endpoint on successful register", async () => {
+      const client = new AutopushClient(defaultOpts());
+      const promise = client.connect();
+      driveHandshake(latestWs());
+      await expect(promise).resolves.toBe("https://example.com/push/ep");
+    });
 
-    expect(onDisconnected).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(120_000);
-    expect(MockWebSocket.instances).toHaveLength(1);
-  });
+    it("rejects on failed register", async () => {
+      const client = new AutopushClient(defaultOpts());
+      const promise = client.connect();
 
-  it("calls onDisconnected and onReconnecting on unexpected close", async () => {
-    vi.useFakeTimers();
-    const onDisconnected = vi.fn();
-    const onReconnecting = vi.fn();
-    const client = new AutopushClient({ ...defaultOpts(), onDisconnected, onReconnecting });
-    const promise = client.connect();
-    const ws = latestWs();
-    driveHandshake(ws);
-    await promise;
+      const ws = latestWs();
+      ws.simulateOpen();
+      ws.simulateMessage({ messageType: "hello", uaid: "u" });
+      ws.simulateMessage({ messageType: "register", status: 409 });
 
-    ws.simulateClose();
-    expect(onDisconnected).toHaveBeenCalledOnce();
-    expect(onReconnecting).toHaveBeenCalledWith(1000);
+      await expect(promise).rejects.toThrow("Register failed: status 409");
+    });
 
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(MockWebSocket.instances).toHaveLength(2);
-  });
+    it("sends ack and calls onNotification on notification", async () => {
+      const onNotification = vi.fn();
+      const client = new AutopushClient({ ...defaultOpts(), onNotification });
+      const promise = client.connect();
+      const ws = latestWs();
+      driveHandshake(ws);
+      await promise;
 
-  it("doubles reconnection delay and caps at 60000", async () => {
-    vi.useFakeTimers();
-    const onReconnecting = vi.fn();
-    const onError = vi.fn();
-    const client = new AutopushClient({ ...defaultOpts(), onReconnecting, onError });
-    const promise = client.connect();
-    let ws = latestWs();
-    driveHandshake(ws);
-    await promise;
+      const notification: AutopushNotification = {
+        messageType: "notification",
+        channelID: "chan-1",
+        version: "v42",
+        data: "encrypted-payload",
+        headers: { crypto_key: "ck", encryption: "enc" },
+      };
+      ws.simulateMessage(notification);
 
-    // First close triggers reconnect with delay=1000. Inside setTimeout, delay doubles.
-    // Don't drive handshake on reconnect so onopen doesn't reset delay.
-    // Instead, simulateClose on the new WS to trigger another reconnect.
-    const expectedDelays = [1000, 2000, 4000, 8000, 16000, 32000, 60000, 60000];
-    for (const expectedDelay of expectedDelays) {
+      const messages = parseSent(ws);
+      expect(messages[2]).toEqual({
+        messageType: "ack",
+        updates: [{ channelID: "chan-1", version: "v42", code: 100 }],
+      });
+      expect(onNotification).toHaveBeenCalledWith(notification);
+    });
+
+    it("updates state getters after handshake", async () => {
+      const client = new AutopushClient(defaultOpts());
+      const promise = client.connect();
+
+      expect(client.getUaid()).toBe("");
+      expect(client.getEndpoint()).toBe("");
+
+      const ws = latestWs();
+      ws.simulateOpen();
+      ws.simulateMessage({ messageType: "hello", uaid: "new-uaid", broadcasts: { foo: "v2" } });
+      expect(client.getUaid()).toBe("new-uaid");
+      expect(client.getRemoteBroadcasts()).toEqual({ foo: "v2" });
+
+      ws.simulateMessage({ messageType: "register", status: 200, pushEndpoint: "https://push/ep" });
+      await promise;
+      expect(client.getEndpoint()).toBe("https://push/ep");
+    });
+
+    it("close() prevents reconnection", async () => {
+      vi.useFakeTimers();
+      const onDisconnected = vi.fn();
+      const client = new AutopushClient({ ...defaultOpts(), onDisconnected });
+      const promise = client.connect();
+      const ws = latestWs();
+      driveHandshake(ws);
+      await promise;
+
+      client.close();
       ws.simulateClose();
-      expect(onReconnecting).toHaveBeenLastCalledWith(expectedDelay);
-      await vi.advanceTimersByTimeAsync(expectedDelay);
-      ws = latestWs();
-      // Don't call driveHandshake — keep delay escalating
-    }
-  });
 
-  it("calls onError and rejects promise on WebSocket error", async () => {
-    const onError = vi.fn();
-    const client = new AutopushClient({ ...defaultOpts(), onError });
-    const promise = client.connect();
-    latestWs().simulateError();
+      expect(onDisconnected).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(MockWebSocket.instances).toHaveLength(1);
+    });
 
-    expect(onError).toHaveBeenCalledOnce();
-    await expect(promise).rejects.toBeInstanceOf(Event);
-  });
+    it("calls onDisconnected and onReconnecting on unexpected close", async () => {
+      vi.useFakeTimers();
+      const onDisconnected = vi.fn();
+      const onReconnecting = vi.fn();
+      const client = new AutopushClient({ ...defaultOpts(), onDisconnected, onReconnecting });
+      const promise = client.connect();
+      const ws = latestWs();
+      driveHandshake(ws);
+      await promise;
 
-  it("preserves remoteBroadcasts when hello has no broadcasts field", () => {
-    const client = new AutopushClient({ ...defaultOpts(), remoteBroadcasts: { key: "val" } });
-    client.connect();
-    const ws = latestWs();
-    ws.simulateOpen();
-    ws.simulateMessage({ messageType: "hello", uaid: "u" });
-    expect(client.getRemoteBroadcasts()).toEqual({ key: "val" });
+      ws.simulateClose();
+      expect(onDisconnected).toHaveBeenCalledOnce();
+      expect(onReconnecting).toHaveBeenCalledWith(1000);
+
+      await vi.advanceTimersByTimeAsync(1000);
+      expect(MockWebSocket.instances).toHaveLength(2);
+    });
+
+    it("doubles reconnection delay and caps at 60000", async () => {
+      vi.useFakeTimers();
+      const onReconnecting = vi.fn();
+      const onError = vi.fn();
+      const client = new AutopushClient({ ...defaultOpts(), onReconnecting, onError });
+      const promise = client.connect();
+      let ws = latestWs();
+      driveHandshake(ws);
+      await promise;
+
+      // First close triggers reconnect with delay=1000. Inside setTimeout, delay doubles.
+      // Don't drive handshake on reconnect so onopen doesn't reset delay.
+      // Instead, simulateClose on the new WS to trigger another reconnect.
+      const expectedDelays = [1000, 2000, 4000, 8000, 16000, 32000, 60000, 60000];
+      for (const expectedDelay of expectedDelays) {
+        ws.simulateClose();
+        expect(onReconnecting).toHaveBeenLastCalledWith(expectedDelay);
+        await vi.advanceTimersByTimeAsync(expectedDelay);
+        ws = latestWs();
+        // Don't call driveHandshake — keep delay escalating
+      }
+    });
+
+    it("calls onError and rejects promise on WebSocket error", async () => {
+      const onError = vi.fn();
+      const client = new AutopushClient({ ...defaultOpts(), onError });
+      const promise = client.connect();
+      latestWs().simulateError();
+
+      expect(onError).toHaveBeenCalledOnce();
+      await expect(promise).rejects.toBeInstanceOf(Event);
+    });
+
+    it("preserves remoteBroadcasts when hello has no broadcasts field", () => {
+      const client = new AutopushClient({ ...defaultOpts(), remoteBroadcasts: { key: "val" } });
+      client.connect();
+      const ws = latestWs();
+      ws.simulateOpen();
+      ws.simulateMessage({ messageType: "hello", uaid: "u" });
+      expect(client.getRemoteBroadcasts()).toEqual({ key: "val" });
+    });
   });
 });

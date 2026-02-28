@@ -95,7 +95,7 @@ class AutoRespondWebSocket {
 
 import { NotificationClient, createClient } from "./client";
 
-describe("Integration: notification pipeline", () => {
+describe("integration", () => {
   beforeEach(() => {
     AutoRespondWebSocket.reset();
     capturedSubscription = null;
