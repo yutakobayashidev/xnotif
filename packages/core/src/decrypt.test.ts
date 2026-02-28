@@ -1,100 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Decryptor } from "./decrypt";
-import { base64urlToBuffer, bufferToBase64url, concatBuffers } from "./utils";
-
-// Test-side HKDF (mirrors production implementation)
-async function hmacSha256(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
-	const cryptoKey = await crypto.subtle.importKey(
-		"raw",
-		key as Uint8Array<ArrayBuffer>,
-		{ name: "HMAC", hash: "SHA-256" },
-		false,
-		["sign"],
-	);
-	return new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, data as Uint8Array<ArrayBuffer>));
-}
-
-async function hkdf(
-	salt: Uint8Array,
-	ikm: Uint8Array,
-	info: Uint8Array,
-	length: number,
-): Promise<Uint8Array> {
-	const prk = await hmacSha256(salt, ikm);
-	const infoWithCounter = new Uint8Array(info.length + 1);
-	infoWithCounter.set(info);
-	infoWithCounter[info.length] = 1;
-	const expanded = await hmacSha256(prk, infoWithCounter);
-	return expanded.slice(0, length);
-}
-
-// Server-side AESGCM encryption for testing decrypt
-async function webPushEncrypt(
-	plaintext: string,
-	decryptorPublicKeyBase64url: string,
-	authBase64url: string,
-): Promise<{ cryptoKeyHeader: string; encryptionHeader: string; ciphertext: ArrayBuffer }> {
-	const serverKeyPair = await crypto.subtle.generateKey(
-		{ name: "ECDH", namedCurve: "P-256" },
-		true,
-		["deriveBits"],
-	);
-	const serverPubRaw = await crypto.subtle.exportKey("raw", serverKeyPair.publicKey);
-
-	const localPubBytes = base64urlToBuffer(decryptorPublicKeyBase64url);
-	const localPubKey = await crypto.subtle.importKey(
-		"raw",
-		localPubBytes,
-		{ name: "ECDH", namedCurve: "P-256" },
-		true,
-		[],
-	);
-
-	const sharedSecret = new Uint8Array(
-		await crypto.subtle.deriveBits({ name: "ECDH", public: localPubKey }, serverKeyPair.privateKey, 256),
-	);
-
-	const authSecret = new Uint8Array(base64urlToBuffer(authBase64url));
-	const authInfo = new TextEncoder().encode("Content-Encoding: auth\0");
-	const ikm = await hkdf(authSecret, sharedSecret, authInfo, 32);
-
-	const salt = crypto.getRandomValues(new Uint8Array(16));
-
-	const context = concatBuffers(
-		new TextEncoder().encode("P-256\0").buffer,
-		new Uint8Array([0, 65]).buffer,
-		localPubBytes,
-		new Uint8Array([0, 65]).buffer,
-		serverPubRaw,
-	);
-
-	const cekInfo = concatBuffers(new TextEncoder().encode("Content-Encoding: aesgcm\0").buffer, context);
-	const cek = await hkdf(salt, ikm, new Uint8Array(cekInfo), 16);
-
-	const nonceInfo = concatBuffers(new TextEncoder().encode("Content-Encoding: nonce\0").buffer, context);
-	const nonce = await hkdf(salt, ikm, new Uint8Array(nonceInfo), 12);
-
-	const plaintextBytes = new TextEncoder().encode(plaintext);
-	const padded = new Uint8Array(2 + plaintextBytes.length);
-	padded[0] = 0;
-	padded[1] = 0;
-	padded.set(plaintextBytes, 2);
-
-	const cekKey = await crypto.subtle.importKey("raw", cek as Uint8Array<ArrayBuffer>, "AES-GCM", false, [
-		"encrypt",
-	]);
-	const ciphertext = await crypto.subtle.encrypt(
-		{ name: "AES-GCM", iv: nonce as Uint8Array<ArrayBuffer> },
-		cekKey,
-		padded as Uint8Array<ArrayBuffer>,
-	);
-
-	return {
-		cryptoKeyHeader: `dh=${bufferToBase64url(serverPubRaw)}`,
-		encryptionHeader: `salt=${bufferToBase64url(salt.buffer)}`,
-		ciphertext,
-	};
-}
+import { base64urlToBuffer } from "./utils";
+import { webPushEncrypt, webPushEncryptChunked } from "./test-encrypt";
 
 describe("Decryptor", () => {
 	it("create() generates a new Decryptor instance", async () => {
@@ -175,5 +82,21 @@ describe("Decryptor", () => {
 		);
 
 		expect(await decryptor.decrypt(cryptoKeyHeader, encryptionHeader, ciphertext)).toBe("");
+	});
+
+	it("decrypts chunked payload with rs parameter", async () => {
+		const decryptor = await Decryptor.create();
+		const plaintext = "This payload is split into multiple AES-GCM chunks for decryption";
+
+		const { cryptoKeyHeader, encryptionHeader, ciphertext } = await webPushEncryptChunked(
+			plaintext,
+			decryptor.getPublicKeyBase64url(),
+			decryptor.getAuthBase64url(),
+			34, // rs=34 → 18 bytes plaintext per chunk + 16 bytes GCM tag
+		);
+
+		expect(encryptionHeader).toContain("rs=34");
+		const result = await decryptor.decrypt(cryptoKeyHeader, encryptionHeader, ciphertext);
+		expect(result).toBe(plaintext);
 	});
 });

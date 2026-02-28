@@ -1,11 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ClientState, TwitterNotification } from "./types";
-import { base64urlToBuffer, bufferToBase64url, concatBuffers } from "./utils";
+import { bufferToBase64url } from "./utils";
+import { webPushEncrypt } from "./test-encrypt";
 
-// Capture subscription for server-side encryption
 let capturedSubscription: { p256dh: string; auth: string } | null = null;
 
-// Mock external boundaries only — let internal modules (decrypt, autopush, utils) use real code
 vi.mock("twitter-openapi-typescript-generated", async () => {
 	const actual = await vi.importActual("twitter-openapi-typescript-generated");
 	return {
@@ -40,7 +39,6 @@ vi.mock("twitter-openapi-typescript", () => ({
 	},
 }));
 
-// Auto-responding MockWebSocket — drives the autopush handshake without manual intervention
 class AutoRespondWebSocket {
 	static CONNECTING = 0 as const;
 	static OPEN = 1 as const;
@@ -93,99 +91,6 @@ class AutoRespondWebSocket {
 	respond(data: unknown) {
 		this.onmessage?.(new MessageEvent("message", { data: JSON.stringify(data) }));
 	}
-}
-
-// Server-side AESGCM encryption (mirrors decrypt.test.ts)
-async function hmacSha256(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
-	const cryptoKey = await crypto.subtle.importKey(
-		"raw",
-		key as Uint8Array<ArrayBuffer>,
-		{ name: "HMAC", hash: "SHA-256" },
-		false,
-		["sign"],
-	);
-	return new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, data as Uint8Array<ArrayBuffer>));
-}
-
-async function hkdf(
-	salt: Uint8Array,
-	ikm: Uint8Array,
-	info: Uint8Array,
-	length: number,
-): Promise<Uint8Array> {
-	const prk = await hmacSha256(salt, ikm);
-	const infoWithCounter = new Uint8Array(info.length + 1);
-	infoWithCounter.set(info);
-	infoWithCounter[info.length] = 1;
-	const expanded = await hmacSha256(prk, infoWithCounter);
-	return expanded.slice(0, length);
-}
-
-async function webPushEncrypt(
-	plaintext: string,
-	decryptorPublicKeyBase64url: string,
-	authBase64url: string,
-): Promise<{ cryptoKeyHeader: string; encryptionHeader: string; ciphertext: ArrayBuffer }> {
-	const serverKeyPair = await crypto.subtle.generateKey(
-		{ name: "ECDH", namedCurve: "P-256" },
-		true,
-		["deriveBits"],
-	);
-	const serverPubRaw = await crypto.subtle.exportKey("raw", serverKeyPair.publicKey);
-
-	const localPubBytes = base64urlToBuffer(decryptorPublicKeyBase64url);
-	const localPubKey = await crypto.subtle.importKey(
-		"raw",
-		localPubBytes,
-		{ name: "ECDH", namedCurve: "P-256" },
-		true,
-		[],
-	);
-
-	const sharedSecret = new Uint8Array(
-		await crypto.subtle.deriveBits({ name: "ECDH", public: localPubKey }, serverKeyPair.privateKey, 256),
-	);
-
-	const authSecret = new Uint8Array(base64urlToBuffer(authBase64url));
-	const authInfo = new TextEncoder().encode("Content-Encoding: auth\0");
-	const ikm = await hkdf(authSecret, sharedSecret, authInfo, 32);
-
-	const salt = crypto.getRandomValues(new Uint8Array(16));
-
-	const context = concatBuffers(
-		new TextEncoder().encode("P-256\0").buffer,
-		new Uint8Array([0, 65]).buffer,
-		localPubBytes,
-		new Uint8Array([0, 65]).buffer,
-		serverPubRaw,
-	);
-
-	const cekInfo = concatBuffers(new TextEncoder().encode("Content-Encoding: aesgcm\0").buffer, context);
-	const cek = await hkdf(salt, ikm, new Uint8Array(cekInfo), 16);
-
-	const nonceInfo = concatBuffers(new TextEncoder().encode("Content-Encoding: nonce\0").buffer, context);
-	const nonce = await hkdf(salt, ikm, new Uint8Array(nonceInfo), 12);
-
-	const plaintextBytes = new TextEncoder().encode(plaintext);
-	const padded = new Uint8Array(2 + plaintextBytes.length);
-	padded[0] = 0;
-	padded[1] = 0;
-	padded.set(plaintextBytes, 2);
-
-	const cekKey = await crypto.subtle.importKey("raw", cek as Uint8Array<ArrayBuffer>, "AES-GCM", false, [
-		"encrypt",
-	]);
-	const ciphertext = await crypto.subtle.encrypt(
-		{ name: "AES-GCM", iv: nonce as Uint8Array<ArrayBuffer> },
-		cekKey,
-		padded as Uint8Array<ArrayBuffer>,
-	);
-
-	return {
-		cryptoKeyHeader: `dh=${bufferToBase64url(serverPubRaw)}`,
-		encryptionHeader: `salt=${bufferToBase64url(salt.buffer)}`,
-		ciphertext,
-	};
 }
 
 import { NotificationClient, createClient } from "./client";
