@@ -1,5 +1,11 @@
 # xnotif
 
+## 0.2.0-beta.1
+
+### Minor Changes
+
+- Migrate runtime from Bun to Node.js with pnpm package manager. Replace bun build with tsdown, fix WebSocket subprotocol compatibility, and add type-aware linting with oxlint.
+
 ## 0.1.1-beta.0
 
 ### Patch Changes

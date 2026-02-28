@@ -5,6 +5,7 @@
     "xnotif": "0.1.0"
   },
   "changesets": [
+    "migrate-bun-to-pnpm",
     "oidc-publish-test"
   ]
 }
