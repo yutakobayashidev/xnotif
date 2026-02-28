@@ -96,10 +96,24 @@ await client.start();
 
 ### `createClient(options)`
 
-| Option    | Type                                  | Required | Description            |
-| --------- | ------------------------------------- | -------- | ---------------------- |
-| `cookies` | `{ auth_token: string; ct0: string }` | Yes      | Session cookies        |
-| `state`   | `ClientState`                         | No       | Restore previous state |
+| Option    | Type                                             | Required | Description                       |
+| --------- | ------------------------------------------------ | -------- | --------------------------------- |
+| `cookies` | `{ auth_token: string; ct0: string }`            | Yes      | Session cookies                   |
+| `state`   | `ClientState`                                    | No       | Restore previous state            |
+| `filter`  | `(notification: TwitterNotification) => boolean` | No       | Predicate to filter notifications |
+
+#### Filtering Notifications
+
+Pass a `filter` function to receive only the notifications you care about:
+
+```typescript
+const client = createClient({
+  cookies: { auth_token: "...", ct0: "..." },
+  filter: (n) => n.data?.type === "tweet",
+});
+```
+
+The predicate receives the decrypted `TwitterNotification` object. Return `true` to emit the notification, `false` to discard it silently. If the filter throws an exception, the notification is discarded and an `error` event is emitted.
 
 ### Events
 
