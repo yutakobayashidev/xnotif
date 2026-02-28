@@ -58,6 +58,41 @@ bun add xnotif
 
 > Requires Bun >= 1.0.0
 
+## Notification Payload
+
+Each `notification` event delivers a `TwitterNotification` object:
+
+```jsonc
+{
+  "title": "@jack",
+  "body": "just setting up my twttr",
+  "icon": "https://pbs.twimg.com/profile_images/...",
+  "timestamp": 1142974214000,
+  "tag": "mention_12345",
+  "data": {
+    "type": "mention",
+    "uri": "https://x.com/i/web/status/20",
+    "title": "@jack",
+    "body": "just setting up my twttr",
+    "tag": "mention_12345",
+    "lang": "en",
+    "scribe_target": "mention",
+    "impression_id": "abc123"
+  }
+}
+```
+
+Top-level fields:
+
+| Field       | Type       | Description                                       |
+| ----------- | ---------- | ------------------------------------------------- |
+| `title`     | `string`   | Who triggered the notification                    |
+| `body`      | `string`   | Human-readable description                        |
+| `icon`      | `string?`  | Profile image URL                                 |
+| `timestamp` | `number?`  | Unix epoch in milliseconds                        |
+| `tag`       | `string?`  | Deduplication tag                                 |
+| `data`      | `object?`  | Structured metadata (see `data.type` for routing) |
+
 ## Getting Cookies
 
 1. Log in to [x.com](https://x.com)
