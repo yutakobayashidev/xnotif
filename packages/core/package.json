@@ -31,7 +31,8 @@
     }
   },
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist --target bun --packages external && bunx tsc --emitDeclarationOnly"
+    "build": "bun build src/index.ts --outdir dist --target bun --packages external && bunx tsc --emitDeclarationOnly",
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "twitter-openapi-typescript": "^0.0.55",
@@ -39,7 +40,9 @@
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",
-    "typescript": "^5.9.3"
+    "@vitest/coverage-v8": "^4.0.18",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   },
   "engines": {
     "bun": ">=1.0.0"
