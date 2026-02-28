@@ -11,5 +11,6 @@
     "outDir": "dist",
     "types": ["bun"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/test-encrypt.ts"]
 }
