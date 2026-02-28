@@ -37,12 +37,12 @@ packages/core/src/
 
 ### Mocking Strategy
 
-| Module | External Dependency | Mock Approach |
-|--------|-------------------|---------------|
-| decrypt.ts | crypto.subtle | Use real Node.js WebCrypto (available in Node 22) — no mocking needed for crypto |
-| autopush.ts | WebSocket | vi.mock() with manual WebSocket stub emitting messages |
-| twitter.ts | twitter-openapi-typescript | vi.mock() the library's client factory and API methods |
-| client.ts | AutopushClient, Decryptor, twitter | vi.mock() each module to isolate orchestration logic |
+| Module      | External Dependency                | Mock Approach                                                                    |
+| ----------- | ---------------------------------- | -------------------------------------------------------------------------------- |
+| decrypt.ts  | crypto.subtle                      | Use real Node.js WebCrypto (available in Node 22) — no mocking needed for crypto |
+| autopush.ts | WebSocket                          | vi.mock() with manual WebSocket stub emitting messages                           |
+| twitter.ts  | twitter-openapi-typescript         | vi.mock() the library's client factory and API methods                           |
+| client.ts   | AutopushClient, Decryptor, twitter | vi.mock() each module to isolate orchestration logic                             |
 
 ### Test Vectors
 
@@ -67,6 +67,6 @@ statements: 80
 
 ## Tracking
 
-| Event Name | Properties | Trigger Condition |
-|------------|------------|-------------------|
-| N/A — no analytics tracking needed for test infrastructure | | |
+| Event Name                                                 | Properties | Trigger Condition |
+| ---------------------------------------------------------- | ---------- | ----------------- |
+| N/A — no analytics tracking needed for test infrastructure |            |                   |
