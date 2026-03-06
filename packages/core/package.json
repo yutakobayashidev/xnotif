@@ -34,10 +34,7 @@
     "build": "tsdown src/index.ts --format esm",
     "test": "vitest run --coverage"
   },
-  "dependencies": {
-    "twitter-openapi-typescript": "^0.0.55",
-    "twitter-openapi-typescript-generated": "^0.0.38"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^4.0.18",

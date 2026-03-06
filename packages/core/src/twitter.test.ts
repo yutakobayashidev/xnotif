@@ -1,44 +1,44 @@
-import { beforeEach, describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, it, expect, vi, afterEach } from "vitest";
+import { createClient, registerPush, type PushSubscription, type TwitterClient } from "./twitter";
 
-let lastRequestContext: any = null;
-let mockResponse: Response = new Response("ok", { status: 200 });
+const HEADER_URL =
+  "https://raw.githubusercontent.com/fa0311/latest-user-agent/refs/heads/main/header.json";
+const PAIR_URL =
+  "https://raw.githubusercontent.com/fa0311/x-client-transaction-pair-dict/refs/heads/main/pair.json";
 
-vi.mock("twitter-openapi-typescript-generated", async () => {
-  const actual = await vi.importActual("twitter-openapi-typescript-generated");
-  return {
-    ...actual,
-    BaseAPI: class MockBaseAPI {
-      configuration: any;
-      constructor(config: any) {
-        this.configuration = config;
-      }
-      async request(context: any, _initOverride?: any): Promise<Response> {
-        lastRequestContext = context;
-        return mockResponse;
-      }
-    },
-  };
-});
-
-const mockGetClientFromCookies = vi.fn();
-
-vi.mock("twitter-openapi-typescript", () => ({
-  TwitterOpenApi: class {
-    getClientFromCookies = mockGetClientFromCookies;
+const fakeHeaders = {
+  "chrome-fetch": {
+    accept: "*/*",
+    "user-agent": "MockChrome/1.0",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
   },
-}));
+};
 
-import { createClient, registerPush, type PushSubscription } from "./twitter";
-import type { TwitterOpenApiClient } from "twitter-openapi-typescript";
+const fakePairs = [{ verification: "dGVzdA", animationKey: "abc123" }];
 
-function makeMockClient(): TwitterOpenApiClient {
-  return {
-    config: {
-      apiKey: vi.fn().mockResolvedValue("mock-header-value"),
-      accessToken: vi.fn().mockResolvedValue("mock-access-token"),
-    },
-    initOverrides: vi.fn().mockReturnValue(vi.fn()),
-  } as unknown as TwitterOpenApiClient;
+let lastFetchUrl: string | undefined;
+let lastFetchInit: RequestInit | undefined;
+let mockRegisterResponse: Response;
+
+const originalFetch = globalThis.fetch;
+
+function stubFetch() {
+  mockRegisterResponse = new Response("ok", { status: 200 });
+
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url === HEADER_URL) return new Response(JSON.stringify(fakeHeaders));
+      if (url === PAIR_URL) return new Response(JSON.stringify(fakePairs));
+      // API call
+      lastFetchUrl = url;
+      lastFetchInit = init;
+      return mockRegisterResponse;
+    }),
+  );
 }
 
 const testSubscription: PushSubscription = {
@@ -48,37 +48,77 @@ const testSubscription: PushSubscription = {
 };
 
 describe("twitter", () => {
-  describe("createClient", () => {
-    it("calls getClientFromCookies with the provided cookies", async () => {
-      const cookies = { ct0: "csrf-token", auth_token: "auth123" };
-      const fakeClient = makeMockClient();
-      mockGetClientFromCookies.mockResolvedValue(fakeClient);
+  beforeEach(() => {
+    lastFetchUrl = undefined;
+    lastFetchInit = undefined;
+    stubFetch();
+  });
 
-      const result = await createClient(cookies);
-      expect(mockGetClientFromCookies).toHaveBeenCalledWith(cookies);
-      expect(result).toBe(fakeClient);
+  afterEach(() => {
+    vi.stubGlobal("fetch", originalFetch);
+  });
+
+  describe("createClient", () => {
+    it("fetches headers and pairs, maps cookies to auth headers", async () => {
+      const client = await createClient({ ct0: "csrf-token", auth_token: "auth123" });
+
+      expect(client.headers["x-csrf-token"]).toBe("csrf-token");
+      expect(client.headers["x-twitter-auth-type"]).toBe("OAuth2Session");
+      expect(client.headers["authorization"]).toMatch(/^Bearer /);
+      expect(client.headers["user-agent"]).toBe("MockChrome/1.0");
+      expect(client.pairs).toEqual(fakePairs);
+    });
+
+    it("sets x-guest-token when gt cookie is present", async () => {
+      const client = await createClient({ gt: "guest-123" });
+      expect(client.headers["x-guest-token"]).toBe("guest-123");
+    });
+
+    it("excludes host and connection from fetched headers", async () => {
+      const headersWithHostConn = {
+        "chrome-fetch": {
+          host: "x.com",
+          connection: "keep-alive",
+          accept: "*/*",
+        },
+      };
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async (input: string | URL | Request) => {
+          const url =
+            typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+          if (url === HEADER_URL) return new Response(JSON.stringify(headersWithHostConn));
+          if (url === PAIR_URL) return new Response(JSON.stringify(fakePairs));
+          return new Response("ok");
+        }),
+      );
+
+      const client = await createClient({ ct0: "t" });
+      expect(client.headers["host"]).toBeUndefined();
+      expect(client.headers["connection"]).toBeUndefined();
+      expect(client.headers["accept"]).toBe("*/*");
     });
   });
 
   describe("registerPush", () => {
-    beforeEach(() => {
-      lastRequestContext = null;
-      mockResponse = new Response("ok", { status: 200 });
+    let client: TwitterClient;
+
+    beforeEach(async () => {
+      client = await createClient({ ct0: "csrf", auth_token: "tok" });
     });
 
     it("sends POST to /1.1/notifications/settings/login.json", async () => {
-      const client = makeMockClient();
       await registerPush(client, testSubscription);
 
-      expect(lastRequestContext.path).toBe("/1.1/notifications/settings/login.json");
-      expect(lastRequestContext.method).toBe("POST");
+      expect(lastFetchUrl).toBe("https://x.com/i/api/1.1/notifications/settings/login.json");
+      expect(lastFetchInit?.method).toBe("POST");
     });
 
     it("sends correct push_device_info body", async () => {
-      const client = makeMockClient();
       await registerPush(client, testSubscription);
 
-      expect(lastRequestContext.body).toEqual({
+      const body = JSON.parse(lastFetchInit!.body as string);
+      expect(body).toEqual({
         push_device_info: {
           os_version: "Web/Chrome",
           udid: "Web/Chrome",
@@ -92,49 +132,30 @@ describe("twitter", () => {
       });
     });
 
-    it("sets Content-Type header", async () => {
-      const client = makeMockClient();
+    it("includes required headers", async () => {
       await registerPush(client, testSubscription);
 
-      expect(lastRequestContext.headers["Content-Type"]).toBe("application/json");
-    });
-
-    it("populates API headers from config.apiKey", async () => {
-      const client = makeMockClient();
-      await registerPush(client, testSubscription);
-
-      const apiKey = client.config.apiKey as ReturnType<typeof vi.fn>;
-      expect(apiKey).toHaveBeenCalled();
-      const calledNames = apiKey.mock.calls.map((c: any[]) => c[0]);
-      expect(calledNames).toContain("x-csrf-token");
-      expect(calledNames).toContain("user-agent");
-    });
-
-    it("sets Authorization header from accessToken", async () => {
-      const client = makeMockClient();
-      await registerPush(client, testSubscription);
-
-      expect(lastRequestContext.headers["Authorization"]).toBe("Bearer mock-access-token");
+      const headers = lastFetchInit!.headers as Record<string, string>;
+      expect(headers["content-type"]).toBe("application/json");
+      expect(headers["x-csrf-token"]).toBe("csrf");
+      expect(headers["authorization"]).toMatch(/^Bearer /);
+      expect(headers["cookie"]).toContain("ct0=csrf");
+      expect(headers["x-client-transaction-id"]).toBeDefined();
     });
 
     it("does not throw on 200 response", async () => {
-      const client = makeMockClient();
       await expect(registerPush(client, testSubscription)).resolves.toBeUndefined();
     });
 
     it("throws on non-ok response (status 403)", async () => {
-      const client = makeMockClient();
-      mockResponse = new Response("Forbidden", { status: 403 });
-
+      mockRegisterResponse = new Response("Forbidden", { status: 403 });
       await expect(registerPush(client, testSubscription)).rejects.toThrow(
         "login.json failed (403): Forbidden",
       );
     });
 
     it("throws on non-ok response (status 500)", async () => {
-      const client = makeMockClient();
-      mockResponse = new Response("Internal Server Error", { status: 500 });
-
+      mockRegisterResponse = new Response("Internal Server Error", { status: 500 });
       await expect(registerPush(client, testSubscription)).rejects.toThrow(
         "login.json failed (500): Internal Server Error",
       );

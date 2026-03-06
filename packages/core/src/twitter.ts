@@ -1,11 +1,9 @@
-import { TwitterOpenApi, type TwitterOpenApiClient } from "twitter-openapi-typescript";
-import {
-  BaseAPI,
-  type Configuration,
-  type HTTPHeaders,
-  type HTTPBody,
-  type InitOverrideFunction,
-} from "twitter-openapi-typescript-generated";
+const BEARER_TOKEN =
+  "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA";
+const HEADER_URL =
+  "https://raw.githubusercontent.com/fa0311/latest-user-agent/refs/heads/main/header.json";
+const PAIR_URL =
+  "https://raw.githubusercontent.com/fa0311/x-client-transaction-pair-dict/refs/heads/main/pair.json";
 
 export interface PushSubscription {
   endpoint: string;
@@ -13,80 +11,105 @@ export interface PushSubscription {
   auth: string; // base64url
 }
 
-// Header names populated by generated API classes via config.apiKey()
-const API_HEADER_NAMES = [
-  "Accept",
-  "x-twitter-client-language",
-  "Priority",
-  "Referer",
-  "Sec-Fetch-Dest",
-  "Sec-Ch-Ua-Platform",
-  "Sec-Fetch-Mode",
-  "x-csrf-token",
-  "x-client-uuid",
-  "x-guest-token",
-  "Sec-Ch-Ua",
-  "x-twitter-active-user",
-  "user-agent",
-  "Accept-Language",
-  "Sec-Fetch-Site",
-  "x-twitter-auth-type",
-  "Sec-Ch-Ua-Mobile",
-  "Accept-Encoding",
-];
-
-// Subclass BaseAPI to expose the protected request() method
-class NotificationApi extends BaseAPI {
-  constructor(config: Configuration) {
-    super(config);
-  }
-
-  async post(path: string, body: unknown, initOverride?: InitOverrideFunction): Promise<Response> {
-    const headers: HTTPHeaders = {};
-
-    // Populate headers from apiKey (same pattern as generated V11PostApi)
-    const apiKey = this.configuration.apiKey;
-    if (apiKey) {
-      for (const name of API_HEADER_NAMES) {
-        const value = await apiKey(name);
-        if (value) headers[name] = value;
-      }
-    }
-
-    // Authorization via accessToken
-    const accessToken = this.configuration.accessToken;
-    if (accessToken) {
-      headers["Authorization"] = `Bearer ${await accessToken()}`;
-    }
-
-    headers["Content-Type"] = "application/json";
-
-    return this.request({ path, method: "POST", headers, body: body as HTTPBody }, initOverride);
-  }
+export interface TwitterClient {
+  headers: Record<string, string>;
+  cookies: Record<string, string>;
+  pairs: Array<{ verification: string; animationKey: string }>;
 }
 
-export async function createClient(cookies: Record<string, string>): Promise<TwitterOpenApiClient> {
-  const api = new TwitterOpenApi();
-  return api.getClientFromCookies(cookies);
+// Vendored from x-client-transaction-id-generater/src/encode.js
+async function generateTransactionId(
+  method: string,
+  path: string,
+  key: string,
+  animationKey: string,
+): Promise<string> {
+  const DEFAULT_KEYWORD = "obfiowerehiring";
+  const ADDITIONAL_RANDOM_NUMBER = 3;
+  const timeNow = Math.floor((Date.now() - 1682924400 * 1000) / 1000);
+  const timeNowBytes = [
+    timeNow & 0xff,
+    (timeNow >> 8) & 0xff,
+    (timeNow >> 16) & 0xff,
+    (timeNow >> 24) & 0xff,
+  ];
+
+  const data = `${method}!${path}!${timeNow}${DEFAULT_KEYWORD}${animationKey}`;
+  const hashBuffer = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(data));
+  const hashBytes = Array.from(new Uint8Array(hashBuffer));
+  const keyBytes = Array.from(Buffer.from(key, "base64"));
+
+  const randomNum = Math.floor(Math.random() * 256);
+  const bytesArr = [
+    ...keyBytes,
+    ...timeNowBytes,
+    ...hashBytes.slice(0, 16),
+    ADDITIONAL_RANDOM_NUMBER,
+  ];
+  const out = new Uint8Array([randomNum, ...bytesArr.map((b) => b ^ randomNum)]);
+
+  return Buffer.from(out).toString("base64").replace(/=/g, "");
 }
 
-function makeInitOverride(client: TwitterOpenApiClient, path: string): InitOverrideFunction {
-  return client.initOverrides({
-    "@method": "POST",
-    "@path": path,
-  });
+function encodeCookies(cookies: Record<string, string>): string {
+  return Object.entries(cookies)
+    .map(([k, v]) => `${k}=${v}`)
+    .join("; ");
+}
+
+export async function createClient(cookies: Record<string, string>): Promise<TwitterClient> {
+  const [headerJson, pairs] = await Promise.all([
+    fetch(HEADER_URL).then((r) => r.json()),
+    fetch(PAIR_URL).then((r) => r.json()),
+  ]);
+
+  const ignore = new Set(["host", "connection"]);
+  const chromeFetch: Record<string, string> = Object.fromEntries(
+    Object.entries(headerJson["chrome-fetch"] as Record<string, string>).filter(
+      ([k]) => !ignore.has(k),
+    ),
+  );
+
+  const headers: Record<string, string> = {
+    ...chromeFetch,
+    "accept-encoding": "identity",
+    pragma: "no-cache",
+    referer: "https://x.com",
+    priority: "u=1, i",
+    "x-twitter-client-language": "en",
+    "x-twitter-active-user": "yes",
+    authorization: `Bearer ${BEARER_TOKEN}`,
+  };
+
+  if (cookies["ct0"]) {
+    headers["x-twitter-auth-type"] = "OAuth2Session";
+    headers["x-csrf-token"] = cookies["ct0"];
+  }
+  if (cookies["gt"]) {
+    headers["x-guest-token"] = cookies["gt"];
+  }
+
+  return { headers, cookies, pairs };
 }
 
 export async function registerPush(
-  client: TwitterOpenApiClient,
+  client: TwitterClient,
   subscription: PushSubscription,
 ): Promise<void> {
-  const api = new NotificationApi(client.config);
   const path = "/1.1/notifications/settings/login.json";
 
-  const res = await api.post(
-    path,
-    {
+  const pair = client.pairs[Math.floor(Math.random() * client.pairs.length)];
+  const tid = await generateTransactionId("POST", path, pair.verification, pair.animationKey);
+
+  const res = await fetch(`https://x.com/i/api${path}`, {
+    method: "POST",
+    headers: {
+      ...client.headers,
+      cookie: encodeCookies(client.cookies),
+      "content-type": "application/json",
+      "x-client-transaction-id": tid,
+    },
+    body: JSON.stringify({
       push_device_info: {
         os_version: "Web/Chrome",
         udid: "Web/Chrome",
@@ -97,9 +120,8 @@ export async function registerPush(
         encryption_key1: subscription.p256dh,
         encryption_key2: subscription.auth,
       },
-    },
-    makeInitOverride(client, path),
-  );
+    }),
+  });
 
   if (!res.ok) {
     const text = await res.text();
