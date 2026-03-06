@@ -3,41 +3,43 @@ import type { ClientState, TwitterNotification } from "./types";
 import { bufferToBase64url } from "./utils";
 import { webPushEncrypt } from "./test-encrypt";
 
-let capturedSubscription: { p256dh: string; auth: string } | null = null;
+const HEADER_URL =
+  "https://raw.githubusercontent.com/fa0311/latest-user-agent/refs/heads/main/header.json";
+const PAIR_URL =
+  "https://raw.githubusercontent.com/fa0311/x-client-transaction-pair-dict/refs/heads/main/pair.json";
 
-vi.mock("twitter-openapi-typescript-generated", async () => {
-  const actual = await vi.importActual("twitter-openapi-typescript-generated");
-  return {
-    ...actual,
-    BaseAPI: class MockBaseAPI {
-      configuration: any;
-      constructor(config: any) {
-        this.configuration = config;
-      }
-      async request(context: any): Promise<Response> {
-        if (context.body?.push_device_info) {
+const fakeHeaders = {
+  "chrome-fetch": {
+    accept: "*/*",
+    "user-agent": "MockChrome/1.0",
+  },
+};
+const fakePairs = [{ verification: "dGVzdA", animationKey: "abc123" }];
+
+let capturedSubscription: { p256dh: string; auth: string } | null = null;
+const originalFetch = globalThis.fetch;
+
+function stubFetch() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url === HEADER_URL) return new Response(JSON.stringify(fakeHeaders));
+      if (url === PAIR_URL) return new Response(JSON.stringify(fakePairs));
+      // registerPush call — capture subscription info
+      if (init?.body) {
+        const body = JSON.parse(init.body as string);
+        if (body.push_device_info) {
           capturedSubscription = {
-            p256dh: context.body.push_device_info.encryption_key1,
-            auth: context.body.push_device_info.encryption_key2,
+            p256dh: body.push_device_info.encryption_key1,
+            auth: body.push_device_info.encryption_key2,
           };
         }
-        return new Response("ok", { status: 200 });
       }
-    },
-  };
-});
-
-vi.mock("twitter-openapi-typescript", () => ({
-  TwitterOpenApi: class {
-    getClientFromCookies = vi.fn().mockResolvedValue({
-      config: {
-        apiKey: vi.fn().mockResolvedValue("mock-value"),
-        accessToken: vi.fn().mockResolvedValue("mock-token"),
-      },
-      initOverrides: vi.fn().mockReturnValue(vi.fn()),
-    });
-  },
-}));
+      return new Response("ok", { status: 200 });
+    }),
+  );
+}
 
 class AutoRespondWebSocket {
   static CONNECTING = 0 as const;
@@ -99,10 +101,12 @@ describe("integration", () => {
   beforeEach(() => {
     AutoRespondWebSocket.reset();
     capturedSubscription = null;
+    stubFetch();
     vi.stubGlobal("WebSocket", AutoRespondWebSocket);
   });
 
   afterEach(() => {
+    vi.stubGlobal("fetch", originalFetch);
     vi.restoreAllMocks();
   });
 
