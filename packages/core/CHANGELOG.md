@@ -1,5 +1,11 @@
 # xnotif
 
+## 0.2.1
+
+### Patch Changes
+
+- 3fb4638: Remove twitter-openapi-typescript dependency and replace with self-contained implementation using plain fetch. Runtime dependencies drop to zero.
+
 ## 0.2.0
 
 ### Minor Changes
